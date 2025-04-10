@@ -15,7 +15,7 @@ find_package(ament_cmake REQUIRED)
 # ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
-install(PROGRAMS nodes/talker.py nodes/listener.py
+install(PROGRAMS nodes/dead_reckoning_nav.py nodes/pose_loader.py
         DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files
