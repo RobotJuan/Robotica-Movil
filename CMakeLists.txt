@@ -17,6 +17,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Set the scripts
 set(PYTHON_SCRIPTS
   nodes/dead_reckoning_nav.py
+  nodes/teleoperacion_turtlebot.py
   nodes/obstacle_detector.py
   nodes/pose_loader.py
   nodes/rotate.py
