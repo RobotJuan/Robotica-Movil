@@ -17,9 +17,9 @@ ament_python_install_package(${PROJECT_NAME})
 # Set the scripts
 set(PYTHON_SCRIPTS
   nodes/dead_reckoning_nav.py
+  nodes/obstacle_detector.py
   nodes/pose_loader.py
-  nodes/talker.py
-  nodes/listener.py
+  nodes/rotate.py
 )
 
 # Mark them executable
