@@ -1,0 +1,5 @@
+<launch>
+
+    <node pkg="paquete" exec="dead_reckoning_nav.py" name="dead_reckoning_navigator"/>
+
+</launch>
