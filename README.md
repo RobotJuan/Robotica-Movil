@@ -3,11 +3,11 @@
 ## Pasos para utilizar GitHub:
 
 ```bash
-$ cd workspace/src/
-$ git clone https://github.com/RobotJuan/Robotica-Movil
-$ cd ..
-$ colcon build --symlink-install
-$ source install/local_setup.bash
+cd workspace/src/
+git clone https://github.com/RobotJuan/Robotica-Movil
+cd ..
+colcon build --symlink-install
+source install/local_setup.bash
 ```
 
 ## Pasos para agregar un archivo:
