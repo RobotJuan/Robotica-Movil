@@ -16,7 +16,7 @@ source install/local_setup.bash
    Asegurarse de que la línea 1 sea explícitamente:  
    ```python
    #!/usr/bin/env python3
-   
+   #
    ```
 2. Modificar `CMakeLists.txt` para incluir su archivo en la línea 19.
 
