@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import os
 import rclpy
 from rclpy.node import Node
@@ -28,6 +29,7 @@ class PoseLoader(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    time.sleep(1)
     node = PoseLoader()
     
 if __name__ == '__main__':
