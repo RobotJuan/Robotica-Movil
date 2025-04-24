@@ -70,7 +70,7 @@ class MySymNavigator( Node ):
     def obstacle_callback(self, msg):
         self.left_side = msg.x
         self.middle_side = msg.y
-        self.right_side = msg.xz
+        self.right_side = msg.z
         if (self.left_side + self.middle_side + self.right_side) > 0:
             self.obtacle_detected = True
         else:
