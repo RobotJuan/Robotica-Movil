@@ -31,6 +31,7 @@ class MySymNavigator( Node ):
         self.left_side = 0
         self.right_side = 0
         self.middle_side = 0
+        self.obtacle_detected = False
         self.lock = Lock()
         
     def aplicar_velocidad(self, x, w, t):
