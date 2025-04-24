@@ -1,0 +1,5 @@
+<launch>
+
+    <include file="$(find-pkg-share kobuki_node)/launch/kobuki_node-launch.py" />
+
+</launch>
