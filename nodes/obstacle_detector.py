@@ -24,7 +24,6 @@ class ObstacleDetector(Node):
         self.threshold_value = 200
         self.filas = 480
         self.columnas = 640
-
         
     def depth_cb(self, data):
         depth_image = self.bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
@@ -35,9 +34,6 @@ class ObstacleDetector(Node):
         cv2.imshow("Depth Cleaned", depth_clean / depth_clean.max())
         cv2.waitKey(1)
         self.current_cv_depth_image = depth_clean
-
-        #self.check_obstaculo()
-
 
     def check_obstaculo(self):
         while True:
@@ -55,7 +51,6 @@ class ObstacleDetector(Node):
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
                     self.identificar_zona((x, y, w, h))
-
 
     def identificar_zona(self, box_obstacle):
         centro_obs = box_obstacle[0] + round(box_obstacle[2]/2)
@@ -79,21 +74,12 @@ class ObstacleDetector(Node):
             self.get_logger().info('Publishing: "%s"' % msg.data)
 
         
-
 def main(args=None):
   rclpy.init(args=args)
-  # nombre = input('Ingrese nombre de usuario (Topico)',)
-  # destinatario = input('Ingrese nombre de con quien quiere comunicarse (nodo a suscribirse)', )
   obstacle_detec = ObstacleDetector()
-
   rclpy.spin(obstacle_detec)
-
-  # Destroy the node explicitly
-  # (optional - otherwise it will be done automatically
-  # when the garbage collector destroys the node object)
   obstacle_detec.destroy_node()
   rclpy.shutdown()
-
 
 if __name__ == '__main__':
   main()
