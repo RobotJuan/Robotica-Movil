@@ -1,0 +1,5 @@
+<launch>
+
+    <node pkg="robotica_movil" exec="teleoperacion_turtlebot_simulador.py" name="teleoperacion_simulador"/>
+
+</launch>
