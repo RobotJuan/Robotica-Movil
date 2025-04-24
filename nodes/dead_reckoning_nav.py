@@ -37,9 +37,11 @@ class MySymNavigator( Node ):
         twist = Twist()
         twist.linear.x = float(x)
         twist.angular.z = float(w)
+        t_passed = 0
         t_start = time.time()
-        while time.time() - t_start < t:
+        while time.time() - t_start - t_passed < t:
             if self.obtacle_detected:
+                t_passed += time.time() - t_start 
                 self.publisher.publish(Twist())
                 while self.obtacle_detected:
                     time.sleep(0.1)
@@ -101,7 +103,6 @@ class MySymNavigator( Node ):
                 y = float(line[1])
                 o = float(line[2])
                 self.mover_robot_a_destino(x, y, o)
-
 
 def main():
     rclpy.init()
