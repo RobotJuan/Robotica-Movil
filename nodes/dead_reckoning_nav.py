@@ -6,7 +6,6 @@ from geometry_msgs.msg import Twist, Vector3
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from threading import Thread, Lock
-from queue import Queue
 from tf_transformations import euler_from_quaternion
 import math
 import time
@@ -23,14 +22,11 @@ class MySymNavigator( Node ):
         super().__init__("Nodito")
         self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
         self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
-        self.goal_subscription = self.create_subscription(String, 'goal', self.goal_callback, 10)
+        self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
         self.x = 0
         self.y = 0
         self.o = 0
-        self.move_lock = Lock()
-        self.goal_queue = Queue()
-        self.goal_thread = Thread(target=self.goal_worker, daemon=True)
-        self.goal_thread.start()
+        self.lock = Lock()
         
     def aplicar_velocidad(self, x, w, t):
         twist = Twist()
@@ -52,12 +48,11 @@ class MySymNavigator( Node ):
         print(f"going to {x}, {y}, {o}")
         correction_factor = 1.14 
 
-        with self.move_lock:
-            self.aplicar_velocidad(0, -sign(start_o), abs(start_o)*correction_factor)
-            self.aplicar_velocidad(0.2*sign(dist_x), 0, abs(dist_x)*5)
-            self.aplicar_velocidad(0, 1, math.pi/2*correction_factor)
-            self.aplicar_velocidad(0.2*sign(dist_y), 0, abs(dist_y)*5)
-            self.aplicar_velocidad(0, sign(o-math.pi/2), abs(o-math.pi/2)*correction_factor)
+        self.aplicar_velocidad(0, -sign(start_o), abs(start_o)*correction_factor)
+        self.aplicar_velocidad(0.2*sign(dist_x), 0, abs(dist_x)*5)
+        self.aplicar_velocidad(0, 1, math.pi/2*correction_factor)
+        self.aplicar_velocidad(0.2*sign(dist_y), 0, abs(dist_y)*5)
+        self.aplicar_velocidad(0, sign(o-math.pi/2), abs(o-math.pi/2)*correction_factor)
         
 
 
@@ -67,19 +62,22 @@ class MySymNavigator( Node ):
         (a,b,self.o) = euler_from_quaternion([  msg.pose.pose.orientation.x,
                                                 msg.pose.pose.orientation.y,
                                                 msg.pose.pose.orientation.z,
-                                                msg.pose.pose.orientation.w,]) 
+                                                msg.pose.pose.orientation.w,])
     
-    def goal_callback(self, msg):
-        datos = msg.data[1: -2]
-        datos = datos.split(",")
-        goal = tuple(float(dato) for dato in datos)
-        self.goal_queue.put(goal)
+    def accion_mover_cb(self, msg):
+        therad = Thread(target = self.mover_robot_a_lista_de_destinos, args = (msg.data,), daemon = True)
+        therad.start()
     
-    def goal_worker(self):
-        while True:
-            x, y, o = self.goal_queue.get()  # Waits until an item is available
-            self.mover_robot_a_destino(x, y, o)
-            self.goal_queue.task_done()
+    def mover_robot_a_lista_de_destinos(self, data):
+        with self.lock:
+            datos = data.split(";")
+            for line in datos:
+                line = line.split(",")
+                x = float(line[0])
+                y = float(line[1])
+                o = float(line[2])
+                self.mover_robot_a_destino(x, y, o)
+
 
 def main():
     rclpy.init()
