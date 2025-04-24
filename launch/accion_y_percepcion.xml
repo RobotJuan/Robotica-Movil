@@ -1,0 +1,9 @@
+<launch>
+
+    <include file="$(find-pkg-share very_simple_robot_simulator)/launch/minimal_simulator_py.xml" />
+    <include file="$(find-pkg-share very_simple_robot_simulator)/launch/openni_simulator.xml" />
+    <include file="$(find-pkg-share very_simple_robot_simulator)/launch/world_state.xml" />
+    <node pkg="robotica_movil" exec="dead_reckoning_nav.py" name="dead_reckoning_navigator"/>
+    <node pkg="robotica_movil" exec="obstacle_detector.py" name="obstacle_detector"/>
+
+</launch>
