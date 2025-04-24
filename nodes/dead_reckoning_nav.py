@@ -34,6 +34,11 @@ class MySymNavigator( Node ):
         twist.angular.z = float(w)
         t_start = time.time()
         while time.time() - t_start < t:
+            if self.obtacle_detected:
+                self.publisher.publish(Twist())
+                while self.obtacle_detected:
+                    time.sleep(0.1)
+                t_start = time.time()
             self.publisher.publish(twist)
         self.publisher.publish(Twist())
 
@@ -54,7 +59,21 @@ class MySymNavigator( Node ):
         self.aplicar_velocidad(0.2*sign(dist_y), 0, abs(dist_y)*5)
         self.aplicar_velocidad(0, sign(o-math.pi/2), abs(o-math.pi/2)*correction_factor)
         
-
+    def obstacle_callback(self, msg):
+        self.left_side = msg.x
+        self.middle_side = msg.y
+        self.right_side = msg.xz
+        if (self.left_side + self.middle_side + self.right_side) > 0:
+            self.obtacle_detected = True
+        else:
+            self.obtacle_detected = False
+        if self.obtacle_detected:
+            if self.left_side > 0:
+                print("Obstáculo a la izquierda")
+            if self.middle_side > 0:
+                print("Obstáculo al centro")
+            else:
+                print("Obstáculo a la derecha")
 
     def odom_callback(self, msg):
         self.x = msg.pose.pose.position.x
