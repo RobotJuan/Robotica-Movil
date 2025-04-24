@@ -9,6 +9,7 @@ from threading import Thread, Lock
 from tf_transformations import euler_from_quaternion
 import math
 import time
+import ast
 
 def sign(num):
     if num >=0:
@@ -23,9 +24,13 @@ class MySymNavigator( Node ):
         self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
         self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
         self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
+        self.obstacle_subscription = self.create_subscription(Vector3, '/occupancy_state', self.obstacle_callback, 10)
         self.x = 0
         self.y = 0
         self.o = 0
+        self.left_side = 0
+        self.right_side = 0
+        self.middle_side = 0
         self.lock = Lock()
         
     def aplicar_velocidad(self, x, w, t):
