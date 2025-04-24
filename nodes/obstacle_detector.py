@@ -6,7 +6,7 @@ import sys
 import threading
 import numpy as np
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import Vector3
 import cv2
 from cv_bridge import CvBridge
 
@@ -14,72 +14,90 @@ class ObstacleDetector(Node):
 
     def __init__(self):
         super().__init__("Vigia")
-        self.publisher_ = self.create_publisher(Float32MultiArray, "/occupancy state", 10)
-        self.publisher_thread = threading.Thread(target=self.thread_publisher_callback)
-        self.publisher_thread.start()
-        self.depth_sub = rospy.create_subscription(Image, '/camera/depth/image', self.depth_cb, 10 )
+        self.depth_sub = self.create_subscription(Image, '/camera/depth/image_raw', self.depth_cb, 10 )
         self.bridge = CvBridge()
-        self.current_cv_depth_image = None
-        self.current_cv_rgb_image = None
+        self.current_cv_depth_image = "A"
         self.threshold_value = 200
         self.filas = 480
         self.columnas = 640
+        self.publisher_ = self.create_publisher(Vector3, "/occupancy_state", 10)
         
     def depth_cb(self, data):
         depth_image = self.bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
         depth_image = depth_image.astype(np.float32)
+        # cv2.imshow("Imagen recibida", depth_image/depth_image.max())
+        # cv2.waitKey(0)
         depth_clean = depth_image.copy()
-        depth_clean[np.isnan(depth_clean)] = 2000
-        depth_clean[depth_clean < 400] = 2000
-        cv2.imshow("Depth Cleaned", depth_clean / depth_clean.max())
-        cv2.waitKey(1)
-        self.current_cv_depth_image = depth_clean
-
-    def check_obstaculo(self):
-        while True:
-            alto, ancho, canales = self.current_cv_depth_image.shape
-            if ancho > 0:
-                _, mask = cv2.threshold(self.current_cv_depth_image, self.threshold_value, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                output = cv2.cvtColor(self.current_cv_depth_image, cv2.COLOR_GRAY2BGR)
-
-                if len(contours) > 0:
-                    for cnt in contours:
-                        x, y, w, h = cv2.boundingRect(cnt)
-                        cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    cv2.imshow("Bounding Boxes", output)
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()
-                    self.identificar_zona((x, y, w, h))
-
-    def identificar_zona(self, box_obstacle):
-        centro_obs = box_obstacle[0] + round(box_obstacle[2]/2)
-        centro_img = self.columnas/2
-        dist_centros = centro_obs-centro_img
+        min_value = np.min(depth_image)
+        max_value = np.max(depth_image)#5metros
+        depth_clean = np.where(depth_image<0.5*max_value, depth_image, 0)
+        # depth_clean = np.where(depth_clean<0.1*max_value, depth_clean, 0)
+        # cv2.imshow("Imagen sin fondo", depth_clean)
+        # cv2.waitKey(0)
+        aux_sin_piso = depth_clean[:round(0.85*self.filas), :]
+        self.current_cv_depth_image = aux_sin_piso
+        # cv2.imshow("Imagen sin piso", aux_sin_piso)
+        # cv2.waitKey(0)
+        self.identificar_zona()
         
-        if abs(dist_centros)<0.05*self.columnas:
-            msg =  Float32MultiArray()
-            msg.data = (0, 1, 0)
-            self.publisher_.publish(msg)
-            self.get_logger().info('Publishing: "%s"' % msg.data)
-        elif dist_centros<0:
-            msg =  Float32MultiArray()
-            msg.data = (1, 0, 0)
-            self.publisher_.publish(msg)
-            self.get_logger().info('Publishing: "%s"' % msg.data)
-        else:
-            msg =  Float32MultiArray()
-            msg.data = (0, 0, 1)
-            self.publisher_.publish(msg)
-            self.get_logger().info('Publishing: "%s"' % msg.data)
+    
+    def identificar_zona(self):
+        if self.current_cv_depth_image is not None:
+            alto, ancho = self.current_cv_depth_image.shape
 
-        
+            img_aux1 = self.current_cv_depth_image[:,:round(ancho/3)]
+            img_aux2 = self.current_cv_depth_image[:,(round(ancho/3)+1):2*round(ancho/3)]
+            img_aux3 = self.current_cv_depth_image[:,(2*round(ancho/3)+1):]
+
+
+            area_tot = alto*ancho
+            n1 = cv2.countNonZero(img_aux1)
+            n2 = cv2.countNonZero(img_aux2)
+            n3 = cv2.countNonZero(img_aux3)
+
+            if (n1 + n2 + n3) > 0.1*area_tot:
+                print("Oh no, un obstáculo")
+                if n1>n2 and n1>n3:
+                    print("el obstáculo esta a la izquierda")
+                    msg =  Vector3()
+                    msg.x = float(1) 
+                    msg.y = float(0)
+                    msg.z = float(0)
+                    self.publisher_.publish(msg)
+                    print('Publishing: "%s"' % msg)
+
+                elif n2>n1 and n2>n3:
+                    print("el obstáculo esta al centro")
+                    msg =  Vector3()
+                    msg.x = float(0) 
+                    msg.y = float(1)
+                    msg.z = float(0)
+                    self.publisher_.publish(msg)
+                    print('Publishing: "%s"' % msg)
+
+                elif n3>n1 and n3>n2:
+                    print("el obstáculo a la derecha")
+                    msg =  Vector3()
+                    msg.x = float(0) 
+                    msg.y = float(0)
+                    msg.z = float(1)
+                    self.publisher_.publish(msg)
+                    print('Publishing: "%s"' % msg)
+            else:
+                print("Camino limpio")
+                msg = Vector3()
+                self.publisher_.publish(msg)
+            
+
 def main(args=None):
   rclpy.init(args=args)
   obstacle_detec = ObstacleDetector()
   rclpy.spin(obstacle_detec)
+
   obstacle_detec.destroy_node()
   rclpy.shutdown()
 
+
 if __name__ == '__main__':
   main()
+
