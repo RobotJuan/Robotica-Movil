@@ -30,8 +30,6 @@ Agregar `launch.xml` en la carpeta `launch`.
 $ ros2 run robotica_movil archivo.py
 ```
 
-> Nota: Reemplazar `archivo` con el nombre real de tu script (sin `.py`).
-
 ## Cómo lanzar un archivo launch:
 
 ```bash
