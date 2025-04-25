@@ -10,6 +10,16 @@ colcon build --symlink-install
 source install/local_setup.bash
 ```
 
+## Pasos para actualizar el GitHub:
+
+```bash
+cd workspace/src/Robotica-Movil
+git pull origin main
+cd ../..
+colcon build --symlink-install
+source install/local_setup.bash
+```
+
 ## Pasos para agregar un archivo:
 
 1. Agregar `archivo.py` en la carpeta `nodes`.  
