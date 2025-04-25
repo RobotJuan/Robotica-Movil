@@ -78,7 +78,7 @@ class MySymNavigator( Node ):
         if self.obtacle_detected:
             if self.left_side > 0:
                 self.get_logger().info("Obstáculo a la izquierda")
-            if self.middle_side > 0:
+            elif self.middle_side > 0:
                 self.get_logger().info("Obstáculo al centro")
             elsif self.right_side > 0:
                 self.get_logger().info("Obstáculo a la derecha")
