@@ -74,6 +74,15 @@ class ObstacleDetector(Node):
                     msg.z = float(1)
                     self.publisher_.publish(msg)
                     print('Publishing: "%s"' % msg)
+
+                else:
+                    print("el obstáculo esta en todas partes")
+                    msg =  Vector3()
+                    msg.x = float(0) 
+                    msg.y = float(0)
+                    msg.z = float(1)
+                    self.publisher_.publish(msg)
+                    print('Publishing: "%s"' % msg)
             else:
                 print("Camino limpio")
                 msg = Vector3()
