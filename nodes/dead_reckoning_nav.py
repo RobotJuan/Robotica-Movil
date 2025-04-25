@@ -57,8 +57,8 @@ class MySymNavigator( Node ):
         
         dist_x = x-start_x
         dist_y = y-start_y
-        print(f"standing on {self.x}, {self.y}, {self.o}")
-        print(f"going to {x}, {y}, {o}")
+        self.get_logger().info(f"standing on {self.x}, {self.y}, {self.o}")
+        self.get_logger().info(f"going to {x}, {y}, {o}")
         correction_factor = 1.14 
 
         self.aplicar_velocidad(0, -sign(start_o), abs(start_o)*correction_factor)
