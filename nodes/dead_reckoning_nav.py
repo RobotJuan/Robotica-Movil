@@ -40,7 +40,7 @@ class MySymNavigator( Node ):
         twist.angular.z = float(w)
         t_passed = 0
         t_start = time.time()
-        while time.time() - t_start - t_passed < t:
+        while time.time() - t_start + t_passed < t:
             if self.obtacle_detected:
                 t_passed += time.time() - t_start 
                 self.publisher.publish(Twist())
