@@ -80,7 +80,7 @@ class MySymNavigator( Node ):
                 self.get_logger().info("Obstáculo a la izquierda")
             if self.middle_side > 0:
                 self.get_logger().info("Obstáculo al centro")
-            else:
+            elsif self.right_side > 0:
                 self.get_logger().info("Obstáculo a la derecha")
 
     def odom_callback(self, msg):
