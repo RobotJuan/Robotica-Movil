@@ -57,8 +57,8 @@ class MySymNavigator( Node ):
         
         dist_x = x-start_x
         dist_y = y-start_y
-        #self.get_logger().info(f"standing on {self.x}, {self.y}, {self.o}")
-        #self.get_logger().info(f"going to {x}, {y}, {o}")
+        print(f"standing on {self.x}, {self.y}, {self.o}")
+        print(f"going to {x}, {y}, {o}")
         correction_factor = 1.14 
 
         self.aplicar_velocidad(0, -sign(start_o), abs(start_o)*correction_factor)
@@ -77,11 +77,11 @@ class MySymNavigator( Node ):
             self.obtacle_detected = False
         if self.obtacle_detected:
             if self.left_side > 0:
-                self.get_logger().info("Obstáculo a la izquierda")
+                print("Obstáculo a la izquierda")
             if self.middle_side > 0:
-                self.get_logger().info("Obstáculo al centro")
+                print("Obstáculo al centro")
             else:
-                self.get_logger().info("Obstáculo a la derecha")
+                print("Obstáculo a la derecha")
 
     def odom_callback(self, msg):
         self.x = msg.pose.pose.position.x
