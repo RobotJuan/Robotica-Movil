@@ -29,8 +29,8 @@ class MySymNavigator(Node):
         self.v_lineal = 0
         self.v_angular = 0
 
-        self.create_subscription(Float64, f'control_effort_lineal_{modo}', self.v_lineal_cb, 1)
-        self.create_subscription(Float64, f'control_effort_angular_{modo}', self.v_angular_cb, 1)
+        self.create_subscription(Float64, f'control_effort_lineal', self.v_lineal_cb, 1)
+        self.create_subscription(Float64, f'control_effort_angular', self.v_angular_cb, 1)
 
         self.state_lineal_pub = self.create_publisher(Float64, 'state_lineal', 1)
         self.state_angular_pub = self.create_publisher(Float64, 'state_angular', 1)
