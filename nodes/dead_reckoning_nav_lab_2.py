@@ -35,8 +35,8 @@ class MySymNavigator(Node):
         self.state_lineal_pub = self.create_publisher(Float64, 'state_lineal', 1)
         self.state_angular_pub = self.create_publisher(Float64, 'state_angular', 1)
 
-        self.setpoint_lineal_pub = self.create_publisher(Float64, f'setpoint_lineal_{modo}', 1)
-        self.setpoint_angular_pub = self.create_publisher(Float64, f'setpoint_angular_{modo}', 1)
+        self.setpoint_lineal_pub = self.create_publisher(Float64, f'setpoint_lineal', 1)
+        self.setpoint_angular_pub = self.create_publisher(Float64, f'setpoint_angular', 1)
 
         self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
         self.lock = Lock()
