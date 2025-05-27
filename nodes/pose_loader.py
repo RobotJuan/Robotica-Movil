@@ -27,8 +27,8 @@ class PoseLoader(Node):
         msg.data = f'{string}'
         self.publisher.publish(msg)
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    rclpy.init()
     time.sleep(1)
     node = PoseLoader()
     
