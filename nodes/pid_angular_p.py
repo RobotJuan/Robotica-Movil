@@ -17,9 +17,9 @@ class PIDController(Node):
         self.integral = 0
         self.t_anterior = time.time()
 
-        self.setpoint_sub = self.create_subscription(Float64, 'setpoint_angular_p', self.setpoint_cb, 1)
+        self.setpoint_sub = self.create_subscription(Float64, 'setpoint_angular', self.setpoint_cb, 1)
         self.state_sub = self.create_subscription(Float64, 'state_angular', self.state_cb, 1)
-        self.control_pub = self.create_publisher(Float64, 'control_effort_angular_p', 1)
+        self.control_pub = self.create_publisher(Float64, 'control_effort_angular', 1)
 
     def setpoint_cb(self, msg):
         self.get_logger().info(f'[P-ANGULAR] Nuevo setpoint recibido: {msg.data:.2f}')
