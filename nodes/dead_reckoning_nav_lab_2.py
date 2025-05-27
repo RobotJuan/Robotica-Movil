@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import numpy as np
 from threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64, String
 from tf_transformations import euler_from_quaternion
@@ -17,7 +19,8 @@ class MySymNavigator(Node):
         super().__init__("Nodito")
         self.modo = modo
 
-        self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
+        self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
+        #self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
 
         self.x = 0
         self.y = 0
@@ -28,6 +31,9 @@ class MySymNavigator(Node):
 
         self.create_subscription(Float64, f'control_effort_lineal_{modo}', self.v_lineal_cb, 1)
         self.create_subscription(Float64, f'control_effort_angular_{modo}', self.v_angular_cb, 1)
+
+        self.state_lineal_pub = self.create_publisher(Float64, 'state_lineal', 1)
+        self.state_angular_pub = self.create_publisher(Float64, 'state_angular', 1)
 
         self.setpoint_lineal_pub = self.create_publisher(Float64, f'setpoint_lineal_{modo}', 1)
         self.setpoint_angular_pub = self.create_publisher(Float64, f'setpoint_angular_{modo}', 1)
@@ -47,11 +53,14 @@ class MySymNavigator(Node):
         return math.atan2(math.sin(angulo), math.cos(angulo))
 
     def aplicar_velocidad(self, displacement_list):
+        dt = 0.1
+
         for lin, ang in displacement_list:
             if abs(lin) > 0.01:
                 self.get_logger().info(f'[NAV] Movimiento lineal: {lin:.2f} m')
                 self.setpoint_lineal_pub.publish(Float64(data=lin))
                 self.setpoint_angular_pub.publish(Float64(data=0.0))
+                self.dist_recorrida = 0
                 referencia = lin
                 tipo = 'lineal'
             elif abs(ang) > 0.01:
@@ -59,23 +68,60 @@ class MySymNavigator(Node):
                 self.setpoint_lineal_pub.publish(Float64(data=0.0))
                 self.setpoint_angular_pub.publish(Float64(data=ang))
                 referencia = ang
+                self.angulo_recorrido = 0
                 tipo = 'angular'
             else:
                 continue
 
             while True:
                 if tipo == 'lineal':
-                    error = abs(referencia - self.x)
+                    error = abs(referencia - self.dist_recorrida)
                     velocidad = abs(self.v_lineal)
+
+                    # publicar al simulador
+                    twist = Twist()
+                    twist.linear.x = float(self.v_lineal)
+                    self.publisher.publish(twist)
+
+                    # calcular distancia faltante/recorrida
+                    self.dist_recorrida += self.v_lineal*dt
+                    msg = Float64()
+                    msg.data = self.dist_recorrida
+                    self.state_lineal_pub.publish(msg)
+                    self.state_angular_pub.publish(Float64())
+
+                    #actualizar la posición del robot
+                    self.x += self.v_lineal*np.cos(self.o)*dt
+                    self.y += self.v_lineal*np.sin(self.o)*dt
+                    self.o += self.v_angular*dt
+
+
                 else:
-                    error = abs(referencia - self.o)
+                    error = abs(referencia - self.angulo_recorrido)
                     velocidad = abs(self.v_angular)
+
+                    # publicar al simulador
+                    twist = Twist()
+                    twist.angular.z = float(self.v_angular)
+                    self.publisher.publish(twist)
+
+                    # calcular angulo faltante/recorrido
+                    self.angulo_recorrido += self.v_angular*dt
+                    msg = Float64()
+                    msg.data = self.angulo_recorrido
+                    self.state_angular_pub.publish(msg)
+                    self.state_lineal_pub.publish(Float64())
+
+                    #actualizar la posición del robot
+                    self.x += self.v_lineal*np.cos(self.o)*dt
+                    self.y += self.v_lineal*np.sin(self.o)*dt
+                    self.o += self.v_angular*dt
 
                 if error < 0.05 and velocidad < 0.05:
                     self.get_logger().info(f'[NAV] Submeta alcanzada. Error: {error:.2f}, Velocidad: {velocidad:.2f}')
                     break
 
-                time.sleep(0.1)
+                time.sleep(dt)
 
     def mover_robot_a_destino(self, x, y, o):
         start_x = self.x
@@ -129,8 +175,7 @@ class MySymNavigator(Node):
                 x = float(line[0])
                 y = float(line[1])
                 o = float(line[2])
-                self.mover_robot_a_destino(x, y, o)
-
+                self.aplicar_velocidad(self.mover_robot_a_destino(x, y, o))
 def main():
     rclpy.init()
     modo = 'pi'  
