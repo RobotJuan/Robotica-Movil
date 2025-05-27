@@ -3,7 +3,7 @@
 from threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Odometry
+from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
 from tf_transformations import euler_from_quaternion
 import math
