@@ -3,8 +3,8 @@
 from threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
-from nav_msgs.msg import Odometry
-from std_msgs.msg import Float64
+from geometry_msgs.msg import Odometry
+from std_msgs.msg import Float64, String
 from tf_transformations import euler_from_quaternion
 import math
 import time
@@ -34,6 +34,8 @@ class MySymNavigator(Node):
 
         self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
         self.lock = Lock()
+
+        self.get_logger().info(f'Iniciando Dead reckoning nav en modo {modo}')
 
     def v_lineal_cb(self, msg):
         self.v_lineal = msg.data
@@ -133,9 +135,8 @@ def main():
     rclpy.init()
     modo = 'pi'  
     node = MySymNavigator(modo=modo)
-    self.get_logger().info(f'Iniciando Dead reckoning nav en modo {modo}')
     rclpy.spin(node)
-
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
