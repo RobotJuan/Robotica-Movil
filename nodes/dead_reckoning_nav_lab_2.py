@@ -95,8 +95,6 @@ class MySymNavigator(Node):
                     self.y += self.v_lineal*np.sin(self.o)*dt
                     self.o += self.v_angular*dt
 
-                    self.get_logger().info(f'[NAV] Avance lineal: \nx = {self.x}\ny ={self.y}\no = {self.o}\nv = {self.v_lineal}')
-
                 else:
                     error = abs(referencia - self.angulo_recorrido)
                     velocidad = abs(self.v_angular)
@@ -179,7 +177,6 @@ class MySymNavigator(Node):
                 self.aplicar_velocidad(self.mover_robot_a_destino(x, y, o))
 def main():
     rclpy.init()
-    modo = 'pi'  
     node = MySymNavigator(modo=modo)
     rclpy.spin(node)
     rclpy.shutdown()
