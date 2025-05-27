@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+form threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Odometry
@@ -30,6 +31,9 @@ class MySymNavigator(Node):
 
         self.setpoint_lineal_pub = self.create_publisher(Float64, f'setpoint_lineal_{modo}', 1)
         self.setpoint_angular_pub = self.create_publisher(Float64, f'setpoint_angular_{modo}', 1)
+
+        self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
+        self.lock = Lock()
 
     def v_lineal_cb(self, msg):
         self.v_lineal = msg.data
@@ -111,11 +115,27 @@ class MySymNavigator(Node):
             msg.pose.pose.orientation.w
         ])
 
+    def accion_mover_cb(self, msg):
+        therad = Thread(target = self.mover_robot_a_lista_de_destinos, args = (msg.data,), daemon = True)
+        therad.start()
+
+    def mover_robot_a_lista_de_destinos(self, data):
+        with self.lock:
+            datos = data.split(";")
+            for line in datos:
+                line = line.split(",")
+                x = float(line[0])
+                y = float(line[1])
+                o = float(line[2])
+                self.mover_robot_a_destino(x, y, o)
+
 def main():
     rclpy.init()
     modo = 'pi'  
     node = MySymNavigator(modo=modo)
+    self.get_logger().info(f'Iniciando Dead reckoning nav en modo {modo}')
     rclpy.spin(node)
+
 
 if __name__ == "__main__":
     main()
