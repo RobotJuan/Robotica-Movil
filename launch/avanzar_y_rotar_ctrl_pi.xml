@@ -1,9 +1,10 @@
 <launch>
 <include file="$(find-pkg-share very_simple_robot_simulator)/launch/minimal_simulator_py.xml" />
 <include file="$(find-pkg-share very_simple_robot_simulator)/launch/world_state.xml" />
-<node pkg="pkg" exec="dead_reckoning_nav_lab_2.py" name="dead_reckoning_navigator">
+<node pkg="robotica_movil" exec="dead_reckoning_nav_lab_2.py" name="dead_reckoning_navigator">7
 <param name="modo" value="pi"/>
 </node>
-<node pkg="pkg" exec="pid_lineal_pi.py" name="pid_lineal_pi"/>
-<node pkg="pkg" exec="pid_angular_pi.py" name="pid_angular_pi"/>
+<node pkg="robotica_movil" exec="pose_loader.py" name="pose_loader"/>
+<node pkg="robotica_movil" exec="pid_lineal_pi.py" name="pid_lineal_pi"/>
+<node pkg="robotica_movil" exec="pid_angular_pi.py" name="pid_angular_pi"/>
 </launch>
