@@ -1,0 +1,9 @@
+<launch>
+<include file="$(find-pkg-share very_simple_robot_simulator)/launch/minimal_simulator_py.xml" />
+<include file="$(find-pkg-share very_simple_robot_simulator)/launch/world_state.xml" />
+<node pkg="pkg" exec="dead_reckoning_nav_lab_2.py" name="dead_reckoning_navigator">
+<param name="modo" value="p"/>
+</node>
+<node pkg="pkg" exec="pid_lineal_p.py" name="pid_lineal_p"/>
+<node pkg="pkg" exec="pid_angular_p.py" name="pid_angular_p"/>
+</launch>
