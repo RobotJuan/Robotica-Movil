@@ -177,6 +177,15 @@ class MySymNavigator(Node):
                 self.aplicar_velocidad(self.mover_robot_a_destino(x, y, o))
 def main():
     rclpy.init()
+    args = sys.argv
+    if len(args)>2:
+        arg = args[2]
+    else:
+        arg = "uwu"
+    if arg = "avanzar_y_rotar_ctrl_pi.xml":
+        modo = "p"
+    else:
+        modo = "pi"
     node = MySymNavigator(modo=modo)
     rclpy.spin(node)
     rclpy.shutdown()
