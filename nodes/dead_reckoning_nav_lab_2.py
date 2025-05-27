@@ -182,7 +182,7 @@ def main():
         arg = args[2]
     else:
         arg = "uwu"
-    if arg = "avanzar_y_rotar_ctrl_pi.xml":
+    if arg == "avanzar_y_rotar_ctrl_pi.xml":
         modo = "p"
     else:
         modo = "pi"
