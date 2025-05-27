@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-form threading import Thread, Lock
+from threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Odometry
