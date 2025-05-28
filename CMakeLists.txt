@@ -22,6 +22,8 @@ set(PYTHON_SCRIPTS
   nodes/pid_angular_p.py
   nodes/pid_lineal_pi.py
   nodes/pid_lineal_p.py
+  nodes/carrot_follower.py
+  nodes/path_giver.py
   nodes/teleoperacion_turtlebot_simulador.py
   nodes/teleoperacion_turtlebot.py
   nodes/obstacle_detector.py
