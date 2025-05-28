@@ -184,9 +184,9 @@ def main():
     else:
         arg = "uwu"
     if arg == "avanzar_y_rotar_ctrl_pi.xml":
-        modo = "p"
-    else:
         modo = "pi"
+    else:
+        modo = "p"
     node = MySymNavigator(modo=modo)
     rclpy.spin(node)
     rclpy.shutdown()
