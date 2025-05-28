@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
 import sys
@@ -70,12 +69,13 @@ class NavegadorPasillo(Node):
             if self.iniciado:#(dist_der + dist_izq)>27000:
                 error = dist_der-dist_izq
 
-                #if error> 0 :
+                if error> 0 :
+                    self.get_logger().info(f" estoy mas cerca de la derecha, error: {error}")
                     #print(f" estoy mas cerca de la derecha, error: {error}")
 
-                #elif error <0:
+                elif error <0:
                     #print(f" estoy mas cerca de la izquierda, error: {error}")
-            
+                    self.get_logger().info(f" estoy mas cerca de la izquierda, error: {error}")
 
                 actuacion = self.kp*error
                 # actuacion = 0
@@ -89,17 +89,19 @@ class NavegadorPasillo(Node):
                     twist= Twist()
                     self.publisher.publish(twist)
 
-def main(args=None):
-  rclpy.init(args=args)
+def main():
+  rclpy.init()
   pared_detec = NavegadorPasillo()
   rclpy.spin(pared_detec)
 
-  pared_detec.destroy_node()
-  rclpy.shutdown()
+#   pared_detec.destroy_node()
+#   rclpy.shutdown()
 
 
 if __name__ == '__main__':
   main()
+
+
 
 
 
