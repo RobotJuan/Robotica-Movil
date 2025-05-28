@@ -29,8 +29,8 @@ class NavegadorPasillo(Node):
     def depth_cb(self, data):
         depth_image = self.bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
         depth_image = depth_image.astype(np.float32)
-        cv2.imshow('imagen original', depth_image)
-        cv2.waitKey(1)
+        #cv2.imshow('imagen original', depth_image)
+        #cv2.waitKey(1)
         depth_clean = np.nan_to_num(depth_image, nan=0.5*self.threshold_value)
         depth_clean = np.where(depth_clean<1*self.threshold_value, depth_clean, 10)
         aux_sin_piso = depth_clean[:round(0.85*self.filas), :]
@@ -46,11 +46,11 @@ class NavegadorPasillo(Node):
         if tot>0:
             self.iniciado = True
         
-        cv2.imshow('imagen filtrada', aux_sin_piso)
-        cv2.waitKey(1)
-        cv2.imshow('imagen invertida', aux_invertida)
-        cv2.waitKey(1)
-        print(f"cantidad de elementos NAN, {np.isnan(aux_sin_piso).sum()}")
+        #cv2.imshow('imagen filtrada', aux_sin_piso)
+        #cv2.waitKey(1)
+        #cv2.imshow('imagen invertida', aux_invertida)
+        #cv2.waitKey(1)
+        #print(f"cantidad de elementos NAN, {np.isnan(aux_sin_piso).sum()}")
         self.centrar_posicion()
         
     
@@ -63,18 +63,18 @@ class NavegadorPasillo(Node):
             dist_izq = np.sum(img_aux1)
             dist_der = np.sum(img_aux2)
             total = np.sum(self.current_cv_depth_image)
-            print(f'cant total {total}')
-            print(f'cant der {dist_der}')
-            print(f'cant izq {dist_izq}')
+            #print(f'cant total {total}')
+            #print(f'cant der {dist_der}')
+            #print(f'cant izq {dist_izq}')
 
             if self.iniciado:#(dist_der + dist_izq)>27000:
                 error = dist_der-dist_izq
 
-                if error> 0 :
-                    print(f" estoy mas cerca de la derecha, error: {error}")
+                #if error> 0 :
+                    #print(f" estoy mas cerca de la derecha, error: {error}")
 
-                elif error <0:
-                    print(f" estoy mas cerca de la izquierda, error: {error}")
+                #elif error <0:
+                    #print(f" estoy mas cerca de la izquierda, error: {error}")
             
 
                 actuacion = self.kp*error
