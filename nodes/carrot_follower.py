@@ -131,7 +131,8 @@ class CarrotFollower( Node ):
 
 def main():
     rclpy.init()
-    node  = CarrotFollower(1,0.1,0.01)
+    node  = CarrotFollower(1,0.01,0.001)
+    rclpy.spin(node)
     rclpy.shutdown()
 
 if __name__ == "__main__":
