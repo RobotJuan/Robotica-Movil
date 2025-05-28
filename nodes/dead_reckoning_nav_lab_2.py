@@ -18,7 +18,6 @@ def sign(num):
 class MySymNavigator(Node):
     def __init__(self, modo='pi'):
         super().__init__("Nodito")
-        self.modo = modo
 
         self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
         #self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
@@ -42,7 +41,6 @@ class MySymNavigator(Node):
         self.goal_subscription = self.create_subscription(String, 'goal_list', self.accion_mover_cb, 10)
         self.lock = Lock()
 
-        self.get_logger().info(f'Iniciando Dead reckoning nav en modo {modo}')
 
     def v_lineal_cb(self, msg):
         self.v_lineal = msg.data
