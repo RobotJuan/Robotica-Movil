@@ -6,11 +6,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, Vector3, Pose
 from nav_msgs.msg import Path
 from std_msgs.msg import String
-from threading import Thread, Lock
 from tf_transformations import euler_from_quaternion
-import math
 import time
-import ast
 
 def encontrar_angulo(centro, p1, p2):
     ang1 = np.arctan2(p1[1]-centro[1], p1[0]-centro[0])
@@ -19,21 +16,7 @@ def encontrar_angulo(centro, p1, p2):
     delta = (delta + np.pi) % (2 * np.pi) - np.pi
     return delta
 
-def semicirculo_radio_uno(n_puntos=100):
-    # Ángulos desde 0 a π (semicírculo superior)
-    theta = np.linspace(-np.pi/2, np.pi/2, n_puntos)
-    
-    # Coordenadas del semicírculo de radio 1
-    x = np.cos(theta)/2 + 1
-    y = np.sin(theta)/2 + 1.5
-    
-    # Convertir a formato [[x1, y1], [x2, y2], ...]
-    path = [[xi, yi] for xi, yi in zip(x, y)]
-    return path
-
-path = semicirculo_radio_uno()
-
-class MySymNavigator( Node ):
+class CarrotFollower( Node ):
 
     def __init__(self, kp, ki, kd):
         super().__init__("Nodito")
@@ -42,8 +25,7 @@ class MySymNavigator( Node ):
 
         #route planner
         self.plan_subscription = self.create_subscription(Path, '/nav_plan', self.plan_callback, 10)
-        self.path = path
-        self.timer = self.create_timer(self.period, self.plan_callback)
+        self.path = []
 
         #pose
         self.pose_subscription = self.create_subscription(Pose, '/real_pose', self.pose_callback, 10)
@@ -65,6 +47,7 @@ class MySymNavigator( Node ):
         self.prev_error = 0
 
     def state_cb(self):
+        self.place_carrot()
         if not self.path:
             return
 
@@ -98,7 +81,7 @@ class MySymNavigator( Node ):
         twist.angular.z = self.speed
         self.publisher.publish(twist)
 
-    def plan_callback(self):
+    def place_carrot(self):
         if self.path:
             obj = self.path[0]
         else:
@@ -113,12 +96,30 @@ class MySymNavigator( Node ):
                 return
         
         pos = [self.x, self.y]
-        print(pos)
+
         reference_point = [self.x + np.cos(self.o), self.y + np.sin(self.o)]
 
         angle_diference= encontrar_angulo(pos, reference_point, obj) 
 
         self.state = angle_diference
+
+    def plan_callback(self, msg):
+        self.reset_pid()
+        lista = msg.poses
+
+        path = []
+        for elem in lista:
+            x = elem.pose.position.x
+            y = elem.pose.position.y
+            path.append([x,y])
+        
+        self.path = path
+    
+    def reset_pid(self):
+        self.error = 0
+        self.integrative_error = 0
+        self.prev_time = time.time()
+        self.prev_error = 0
 
     def pose_callback(self, msg):
         self.x = msg.position.x
@@ -130,8 +131,8 @@ class MySymNavigator( Node ):
 
 def main():
     rclpy.init()
-    node  = MySymNavigator(1,0,0)
-    rclpy.spin(node)
+    node  = CarrotFollower(1,0.1,0.01)
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
