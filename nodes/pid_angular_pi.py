@@ -6,9 +6,9 @@ import time
 
 class PIDController(Node):
     def __init__(self):
-        super().__init__('pid_lineal_pi')
-        self.kp = 1.0
-        self.ki = 0.2
+        super().__init__('pid_angular_pi')
+        self.kp = 2.0
+        self.ki = 0.3
         self.kd = 0.0
 
         self.r = None
@@ -17,12 +17,12 @@ class PIDController(Node):
         self.integral = 0
         self.t_anterior = time.time()
 
-        self.setpoint_sub = self.create_subscription(Float64, 'setpoint_lineal', self.setpoint_cb, 1)
-        self.state_sub = self.create_subscription(Float64, 'state_lineal', self.state_cb, 1)
-        self.control_pub = self.create_publisher(Float64, 'control_effort_lineal', 1)
+        self.setpoint_sub = self.create_subscription(Float64, 'setpoint_angular', self.setpoint_cb, 1)
+        self.state_sub = self.create_subscription(Float64, 'state_angular', self.state_cb, 1)
+        self.control_pub = self.create_publisher(Float64, 'control_effort_angular', 1)
 
     def setpoint_cb(self, msg):
-        self.get_logger().info(f'[PI-LINEAL] Nuevo setpoint recibido: {msg.data:.2f}')
+        self.get_logger().info(f'[PI-ANGULAR] Nuevo setpoint recibido: {msg.data:.2f}')
         self.r = msg.data
         self.integral = 0
         self.e_anterior = 0
@@ -45,7 +45,7 @@ class PIDController(Node):
         control = accion_p + accion_i
 
         msg_out = Float64()
-        msg_out.data = float(max(min(control, 0.2), -0.2))
+        msg_out.data = float(max(min(control, 1), -1))
         self.control_pub.publish(msg_out)
 
         self.e_anterior = error
