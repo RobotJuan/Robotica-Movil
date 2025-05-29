@@ -44,7 +44,7 @@ class PIDController(Node):
         control = accion_p
 
         msg_out = Float64()
-        msg_out.data = max(min(control, 0.2), -0.2)  # saturación
+        msg_out.data = float(max(min(control, 0.2), -0.2))  # saturación
         self.control_pub.publish(msg_out)
 
         self.e_anterior = error
