@@ -43,9 +43,9 @@ class PathGiver( Node ):
         data_pose = PoseStamped()
         data_pose.header.stamp = self.get_clock().now().to_msg()
         data_pose.header.frame_id = "map"
-        if modo = "line":
+        if modo == "line":
             data_pose.pose.position.x = 1.0
-        elif modo = "sqrt":
+        elif modo == "sqrt":
             data_pose.pose.position.x = 2.0
         else:
             data_pose.pose.position.x = 3.0
