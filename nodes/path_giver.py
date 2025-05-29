@@ -68,7 +68,7 @@ def main():
         modo = "sqrt"
     else:
         modo = "sine"
-    time.sleep(1)
+    time.sleep(5)
     node  = PathGiver(modo)
     rclpy.shutdown()
 
