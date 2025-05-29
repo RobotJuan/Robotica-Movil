@@ -12,12 +12,12 @@ class PathGiver( Node ):
     def __init__(self, modo):
         super().__init__("PathGiver")
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if modo == "sine":
-            path = os.path.join(script_dir, "sine.txt")
+        if modo == "line":
+            path = os.path.join(script_dir, "line.txt")
         elif modo == "sqrt":
             path = os.path.join(script_dir, "sqrt.txt")
         else:
-            path = os.path.join(script_dir, "line.txt")
+            path = os.path.join(script_dir, "sine.txt")
         
         with open(path) as f:
             data = f.readlines()
@@ -39,14 +39,35 @@ class PathGiver( Node ):
             pose_stamped.pose.position.x = x
             pose_stamped.pose.position.y = y
             msg.poses.append(pose_stamped)
+        
+        data_pose = PoseStamped()
+        data_pose.header.stamp = self.get_clock().now().to_msg()
+        data_pose.header.frame_id = "map"
+        if modo = "line":
+            data_pose.pose.position.x = 1.0
+        elif modo = "sqrt":
+            data_pose.pose.position.x = 2.0
+        else:
+            data_pose.pose.position.x = 3.0
+        msg.poses.append(pose_stamped)
        
         pub = self.create_publisher(Path, "/nav_plan", 1)
         pub.publish(msg)
 
 def main():
     rclpy.init()
-    time.sleep(1)
-    node  = PathGiver("sine")
+    args = sys.argv
+    if len(args) > 2:
+        launch = sys.argv[2]
+    else:
+        launch = None
+    if launch == "follow_the_carrot_line.xml":
+        modo = "line"
+    elif launch == "follow_the_carrot_sqrt.xml":
+        modo = "sqrt"
+    else:
+        modo = "sine"
+    node  = PathGiver(modo)
     rclpy.shutdown()
 
 if __name__ == "__main__":
