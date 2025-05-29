@@ -143,7 +143,7 @@ class CarrotFollower( Node ):
         self.send_pose()
     
     def send_pose(self):
-        string = f"{self.mode} "
+        string = f"{self.modo} "
         carrot = f"{self.carrot[0]},{self.carrot[1]} "
         new_point = f"{self.x},{self.y}"
 
