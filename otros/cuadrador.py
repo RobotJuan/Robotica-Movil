@@ -34,42 +34,6 @@ def error_cuadratico_integrado(curva1, curva2, n=500):
     integral_error = simps(errores, s_uniforme)
     return integral_error
 
-# Ejemplo de uso:
-
-#cargar datos
-def cargar_datos(nombre_archivo):
-    with open(nombre_archivo, 'r') as f:
-        contenido = f.read().strip()
-    puntos = contenido.split(',')
-    coordenadas = []
-    for punto in puntos:
-        try:
-            x, y, _ = map(float, punto.strip().split())
-            coordenadas.append((x, y))
-        except:
-            continue
-    return coordenadas
-
-datos1 = cargar_datos('result_line.txt')
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-modo = "line"
-if modo == "sine":
-    path = os.path.join(script_dir, "sine.txt")
-elif modo == "sqrt":
-    path = os.path.join(script_dir, "sqrt.txt")
-else:
-    path = os.path.join(script_dir, "line.txt")
-
-with open(path) as f:
-    data = f.readlines()
-
-objetivos = []
-for elem in data:
-    elem = elem.strip("\n")
-    elem = elem.split(",")
-    objetivos.append([float(elem[0]), float(elem[1])])
-
 def eliminar_puntos_repetidos(curva):
     curva_filtrada = [curva[0]]
     for p in curva[1:]:
@@ -91,6 +55,40 @@ def eliminar_bajos(lista, threshold):
             result = lista[i:]
             break
     return result
+#cargar datos
+def cargar_datos(nombre_archivo):
+    with open(nombre_archivo, 'r') as f:
+        contenido = f.read().strip()
+    puntos = contenido.split(',')
+    coordenadas = []
+    for punto in puntos:
+        try:
+            x, y, _ = map(float, punto.strip().split())
+            coordenadas.append((x, y))
+        except:
+            continue
+    return coordenadas
+
+script_dir = os.path.dirname(os.path.realpath(__file__))
+modo = "sine"
+if modo == "sine":
+    datos1 = cargar_datos('result_sine.txt')
+    path = os.path.join(script_dir, "sine.txt")
+elif modo == "sqrt":
+    datos1 = cargar_datos('result_sqrt.txt')
+    path = os.path.join(script_dir, "sqrt.txt")
+else:
+    datos1 = cargar_datos('result_line.txt')
+    path = os.path.join(script_dir, "line.txt")
+
+with open(path) as f:
+    data = f.readlines()
+
+objetivos = []
+for elem in data:
+    elem = elem.strip("\n")
+    elem = elem.split(",")
+    objetivos.append([float(elem[0]), float(elem[1])])
 
 curva1 = datos1
 curva2 = objetivos
@@ -98,9 +96,11 @@ curva2 = objetivos
 curva1 = eliminar_puntos_repetidos(curva1)
 curva2 = eliminar_puntos_repetidos(curva2)
 
-curva1 = eliminar_bajos(curva1, 1.97)
-
-print(curva1[0])
+if modo == "line":
+    curva1 = eliminar_bajos(curva1, 1.97)
+elif modo == "sqrt":
+    curva1 = dar_vuelta_puntos(curva1)
+    curva2 = dar_vuelta_puntos(curva2)
 
 # print(curva1)
 # print(curva2)
