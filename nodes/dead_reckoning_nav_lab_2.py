@@ -5,12 +5,13 @@ import numpy as np
 from threading import Thread, Lock
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Pose
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64, String
 from tf_transformations import euler_from_quaternion
 import math
 import time
+
 
 def sign(num):
     return 1 if num >= 0 else -1
@@ -20,8 +21,9 @@ class MySymNavigator(Node):
         super().__init__("Nodito")
 
         self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
-        #self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
-
+        self.odom_subscription = self.create_subscription(Pose, '/real_pose', self.odom_callback, 10)
+        self.trayectoria = []
+        self.threshold = 0.05
         self.x = 0
         self.y = 0
         self.o = 0
@@ -53,17 +55,18 @@ class MySymNavigator(Node):
 
     def aplicar_velocidad(self, displacement_list):
         dt = 0.1
+        self.get_logger().info(str(displacement_list))
 
         for lin, ang in displacement_list:
-            if abs(lin) > 0.01:
-                self.get_logger().info(f'[NAV] Movimiento lineal: {lin:.2f} m')
+            if abs(lin) > self.threshold:
+                #self.get_logger().info(f'[NAV] Movimiento lineal: {lin:.2f} m')
                 self.setpoint_lineal_pub.publish(Float64(data=lin))
                 self.setpoint_angular_pub.publish(Float64(data=0.0))
                 self.dist_recorrida = 0
                 referencia = lin
                 tipo = 'lineal'
-            elif abs(ang) > 0.01:
-                self.get_logger().info(f'[NAV] Rotación angular: {ang:.2f} rad')
+            elif abs(ang) > self.threshold:
+                #self.get_logger().info(f'[NAV] Rotación angular: {ang:.2f} rad')
                 self.setpoint_lineal_pub.publish(Float64(data=0.0))
                 self.setpoint_angular_pub.publish(Float64(data=ang))
                 referencia = ang
@@ -94,6 +97,13 @@ class MySymNavigator(Node):
                     self.y += self.v_lineal*np.sin(self.o)*dt
                     self.o += self.v_angular*dt
 
+                    #self.trayectoria.append((self.x, self.y))
+                    #with open("trayectoria.txt", "a") as f:
+                    #    f.write(f"{self.x} {self.y}\n")
+
+                    with open("para_dibujo_lineal.txt", "a") as f:
+                        f.writelines(f"{lin} {self.v_lineal} {self.dist_recorrida},")
+
                 else:
                     error = abs(referencia - self.angulo_recorrido)
                     velocidad = abs(self.v_angular)
@@ -115,7 +125,15 @@ class MySymNavigator(Node):
                     self.y += self.v_lineal*np.sin(self.o)*dt
                     self.o += self.v_angular*dt
 
-                if error < 0.05 and velocidad < 0.05:
+                    #self.trayectoria.append((self.x, self.y))
+                    #with open("trayectoria.txt", "a") as f:
+                    #    f.write(f"{self.x} {self.y}\n")
+
+                    with open("para_dibujo_angular.txt", "a") as f:
+                        f.writelines(f"{ang} {self.v_angular} {self.angulo_recorrido}," )
+
+
+                if error < self.threshold and velocidad < self.threshold:
                     self.get_logger().info(f'[NAV] Submeta alcanzada. Error: {error:.2f}, Velocidad: {velocidad:.2f}')
                     break
 
@@ -129,37 +147,54 @@ class MySymNavigator(Node):
         dist_x = x - start_x
         dist_y = y - start_y
 
-        if dist_x > 0:
-            rotacion_1 = (0, self.normalizar_angulo(0 - start_o))
-        elif dist_x < 0:
-            rotacion_1 = (0, self.normalizar_angulo(math.pi - start_o))
+        plan = []
+
+        # Movimiento en X si la distancia supera el umbral
+        if abs(dist_x) >= self.threshold:
+            if dist_x > 0:
+                rotacion_1 = (0, self.normalizar_angulo(0 - start_o))
+            else:
+                rotacion_1 = (0, self.normalizar_angulo(math.pi - start_o))
+            
+            plan.append(rotacion_1)
+            movimiento_x = (abs(dist_x), 0.0)
+            plan.append(movimiento_x)
+            angulo_despues_x = start_o + rotacion_1[1]
         else:
-            rotacion_1 = (0, 0.0)
+            angulo_despues_x = start_o
 
-        movimiento_x = (abs(dist_x), 0.0)
+        # Movimiento en Y si la distancia supera el umbral
+        if abs(dist_y) >= self.threshold:
+            if dist_y > 0:
+                ang_y = math.pi / 2
+            else:
+                ang_y = -math.pi / 2
 
-        if dist_y > 0:
-            ang_y = math.pi / 2
-        elif dist_y < 0:
-            ang_y = -math.pi / 2
+            rotacion_2 = (0, self.normalizar_angulo(ang_y - angulo_despues_x))
+            plan.append(rotacion_2)
+            movimiento_y = (abs(dist_y), 0.0)
+            plan.append(movimiento_y)
+            angulo_despues_y = angulo_despues_x + rotacion_2[1]
         else:
-            ang_y = start_o
+            angulo_despues_y = angulo_despues_x
 
-        rotacion_2 = (0, self.normalizar_angulo(ang_y - (start_o + rotacion_1[1])))
-        movimiento_y = (abs(dist_y), 0.0)
-        rotacion_3 = (0, self.normalizar_angulo(o - (start_o + rotacion_1[1] + rotacion_2[1])))
+        rotacion_3 = (0, self.normalizar_angulo(o - angulo_despues_y))
+        plan.append(rotacion_3)
 
-        return [rotacion_1, movimiento_x, rotacion_2, movimiento_y, rotacion_3]
+        return plan
+
 
     def odom_callback(self, msg):
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
-        (_, _, self.o) = euler_from_quaternion([
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w
+        x = msg.position.x
+        y = msg.position.y
+        (_, _, o) = euler_from_quaternion([
+            msg.orientation.x,
+            msg.orientation.y,
+            msg.orientation.z,
+            msg.orientation.w
         ])
+        with open("trayectoria.txt", "a") as f:
+            f.write(f"{x} {y}\n")
 
     def accion_mover_cb(self, msg):
         therad = Thread(target = self.mover_robot_a_lista_de_destinos, args = (msg.data,), daemon = True)
@@ -181,10 +216,10 @@ def main():
         arg = args[2]
     else:
         arg = "uwu"
-    if arg == "avanzar_y_rotar_ctrl_pi.xml":
-        modo = "pi"
-    else:
+    if arg == "avanzar_y_rotar_ctrl_p.xml":
         modo = "p"
+    else:
+        modo = "pi"
     node = MySymNavigator(modo=modo)
     rclpy.spin(node)
     rclpy.shutdown()
