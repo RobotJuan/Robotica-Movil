@@ -73,6 +73,9 @@ class CarrotFollower( Node ):
 
         self.speed = actuation
 
+        self.prev_time = curr_time
+        self.prev_error = error
+        
         self.mover()
     
     def mover(self):
