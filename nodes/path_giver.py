@@ -4,21 +4,18 @@ import rclpy
 import os
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from rclpy.parameter import Parameter
 from nav_msgs.msg import Path
 import time
-import sys
 
 class PathGiver( Node ):
 
-    def __init__(self, modo):
+    def __init__(self):
         super().__init__("PathGiver")
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if modo == "line":
-            path = os.path.join(script_dir, "line.txt")
-        elif modo == "sqrt":
-            path = os.path.join(script_dir, "sqrt.txt")
-        else:
-            path = os.path.join(script_dir, "sine.txt")
+        self.declare_parameter("modo", "sine")
+        modo = self.get_parameter("modo").get_parameter_value().string_value
+        self.get_logger().info(f"Modo recibido por parámetro: {modo}")
         self.get_logger().info(f"Inicioando path giver: {modo}")
         self.get_logger().info(f"Inicioando path giver: {sys.argv}")
         self.get_logger().info(f"Inicioando path giver: {sys.argv[2]}")
@@ -60,11 +57,6 @@ class PathGiver( Node ):
 
 def main():
     rclpy.init()
-    args = sys.argv
-    if len(args) > 1:
-        arg = sys.argv[1]
-    else:
-        arg = None
     time.sleep(5)
     node  = PathGiver(arg)
     rclpy.shutdown()
