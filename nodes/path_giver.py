@@ -16,9 +16,6 @@ class PathGiver( Node ):
         self.declare_parameter("modo", "sine")
         modo = self.get_parameter("modo").get_parameter_value().string_value
         self.get_logger().info(f"Modo recibido por parámetro: {modo}")
-        self.get_logger().info(f"Inicioando path giver: {modo}")
-        self.get_logger().info(f"Inicioando path giver: {sys.argv}")
-        self.get_logger().info(f"Inicioando path giver: {sys.argv[2]}")
         
         with open(path) as f:
             data = f.readlines()
