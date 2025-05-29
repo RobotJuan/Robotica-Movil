@@ -20,6 +20,7 @@ class PathGiver( Node ):
         else:
             path = os.path.join(script_dir, "sine.txt")
         self.get_logger().info(f"Inicioando path giver: {modo}")
+        self.get_logger().info(f"Inicioando path giver: {sys.argv}")
         self.get_logger().info(f"Inicioando path giver: {sys.argv[2]}")
         
         with open(path) as f:
