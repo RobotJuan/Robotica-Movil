@@ -61,18 +61,12 @@ class PathGiver( Node ):
 def main():
     rclpy.init()
     args = sys.argv
-    if len(args) > 2:
-        launch = sys.argv[2]
+    if len(args) > 1:
+        arg = sys.argv[1]
     else:
-        launch = None
-    if launch == "follow_the_carrot_line.xml":
-        modo = "line"
-    elif launch == "follow_the_carrot_sqrt.xml":
-        modo = "sqrt"
-    else:
-        modo = "sine"
+        arg = None
     time.sleep(5)
-    node  = PathGiver(modo)
+    node  = PathGiver(arg)
     rclpy.shutdown()
 
 if __name__ == "__main__":
