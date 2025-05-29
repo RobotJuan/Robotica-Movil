@@ -55,7 +55,7 @@ class PathGiver( Node ):
 def main():
     rclpy.init()
     time.sleep(5)
-    node  = PathGiver(arg)
+    node  = PathGiver()
     rclpy.shutdown()
 
 if __name__ == "__main__":
