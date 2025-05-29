@@ -7,8 +7,8 @@ import time
 class PIDController(Node):
     def __init__(self):
         super().__init__('pid_lineal_pi')
-        self.kp = 1.0
-        self.ki = 0.13
+        self.kp = 0.8
+        self.ki = 0.18
         self.kd = 0.0
 
         self.r = None
