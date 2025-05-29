@@ -12,10 +12,17 @@ class PathGiver( Node ):
 
     def __init__(self):
         super().__init__("PathGiver")
-        script_dir = os.path.dirname(os.path.realpath(__file__))
         self.declare_parameter("modo", "sine")
         modo = self.get_parameter("modo").get_parameter_value().string_value
         self.get_logger().info(f"Modo recibido por parámetro: {modo}")
+        
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        if modo == "line":
+            path = os.path.join(script_dir, "line.txt")
+        elif modo == "sqrt":
+            path = os.path.join(script_dir, "sqrt.txt")
+        else:
+            path = os.path.join(script_dir, "sine.txt")
         
         with open(path) as f:
             data = f.readlines()
