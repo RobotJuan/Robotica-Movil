@@ -2,10 +2,10 @@
 
     <include file="$(find-pkg-share very_simple_robot_simulator)/launch/minimal_simulator_py.xml" />
     <include file="$(find-pkg-share very_simple_robot_simulator)/launch/world_state.xml" />
+    <node pkg="robotica_movil" exec="carrot_display.py" name="display"/>
+    <node pkg="robotica_movil" exec="carrot_follower.py" name="not_path_giver"/>
     <node pkg="robotica_movil" exec="path_giver.py" name="path_giver">
       <param name="modo" value="sqrt"/>
     </node>
-    <node pkg="robotica_movil" exec="carrot_display.py" name="display"/>
-    <node pkg="robotica_movil" exec="path_giver.py" name="path_giver"/>
 
 </launch>
