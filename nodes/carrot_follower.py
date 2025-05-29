@@ -22,10 +22,14 @@ class CarrotFollower( Node ):
         super().__init__("Nodito")
         self.publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
         self.period = 0.1
+        self.modo = "sine"
 
         #route planner
         self.plan_subscription = self.create_subscription(Path, '/nav_plan', self.plan_callback, 10)
         self.path = []
+
+        #graficador
+        self.trayectory_pub = self.create_publisher(String, '/trayectory', 10)
 
         #pose
         self.pose_subscription = self.create_subscription(Pose, '/real_pose', self.pose_callback, 10)
@@ -46,6 +50,8 @@ class CarrotFollower( Node ):
         self.prev_time = time.time()
         self.prev_error = 0
 
+        self.carrot = [0,0]
+
     def state_cb(self):
         self.place_carrot()
         if not self.path:
@@ -54,7 +60,6 @@ class CarrotFollower( Node ):
         curr_time = time.time()
         dt = curr_time-self.prev_time
 
-        # self.state = msg.data
         error = self.setpoint - self.state
 
         self.integrative_error += error*dt
@@ -69,10 +74,6 @@ class CarrotFollower( Node ):
         self.speed = actuation
 
         self.mover()
-        # Message sending
-        # msg = Float64()
-        # msg.data = actuation
-        # self.actuation_pub.publish( msg )
     
     def mover(self):
         twist = Twist()
@@ -94,7 +95,9 @@ class CarrotFollower( Node ):
                 obj = self.path[0]
             else:
                 return
-        
+
+        self.carrot = obj        
+
         pos = [self.x, self.y]
 
         reference_point = [self.x + np.cos(self.o), self.y + np.sin(self.o)]
@@ -113,6 +116,14 @@ class CarrotFollower( Node ):
             y = elem.pose.position.y
             path.append([x,y])
         
+        data = path.pop
+        if data[0] == 1.0:
+            self.modo = "line"
+        if data[0] == 1.0:
+            self.modo = "sqrt"
+        else:
+            self.modo = "sine"
+
         self.path = path
     
     def reset_pid(self):
@@ -128,6 +139,20 @@ class CarrotFollower( Node ):
                                                 msg.orientation.y,
                                                 msg.orientation.z,
                                                 msg.orientation.w,])
+        
+        self.send_pose()
+    
+    def send_pose(self):
+        string = f"{self.mode} "
+        carrot = f"{self.carrot[0]},{self.carrot[1]} "
+        new_point = f"{self.x},{self.y}"
+
+        string += carrot
+        string += new_point
+
+        msg = String()
+        msg.data = string
+        self.trayectory_pub.publish(msg)
 
 def main():
     rclpy.init()
