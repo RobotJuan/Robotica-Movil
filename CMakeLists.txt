@@ -29,7 +29,7 @@ set(PYTHON_SCRIPTS
   nodes/teleoperacion_turtlebot.py
   nodes/obstacle_detector.py
   nodes/pose_loader.py
-  nodes/navegacion_pasillo.py
+  nodes/navegacion_final.py
 )
 
 # Mark them executable
