@@ -6,6 +6,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 import time
+import sys
 
 class PathGiver( Node ):
 
@@ -49,7 +50,7 @@ class PathGiver( Node ):
             data_pose.pose.position.x = 2.0
         else:
             data_pose.pose.position.x = 3.0
-        msg.poses.append(pose_stamped)
+        msg.poses.append(data_pose)
        
         pub = self.create_publisher(Path, "/nav_plan", 1)
         pub.publish(msg)
@@ -67,6 +68,7 @@ def main():
         modo = "sqrt"
     else:
         modo = "sine"
+    time.sleep(1)
     node  = PathGiver(modo)
     rclpy.shutdown()
 
