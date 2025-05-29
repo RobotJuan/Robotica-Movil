@@ -116,10 +116,10 @@ class CarrotFollower( Node ):
             y = elem.pose.position.y
             path.append([x,y])
         
-        data = path.pop
+        data = path.pop()
         if data[0] == 1.0:
             self.modo = "line"
-        if data[0] == 1.0:
+        elif data[0] == 2.0:
             self.modo = "sqrt"
         else:
             self.modo = "sine"
