@@ -7,7 +7,9 @@ from scipy import signal
 import numpy as np
 import cv2
 from collections import deque
+import time
 from threading import Thread
+from scipy import spatial
 
 class Sensor(Node):
 
@@ -46,55 +48,56 @@ class Sensor(Node):
                     mapa[i][j] = 0
                 else:
                     mapa[i][j] = -1
-    
-        # distancias
+
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        intresting_walls = []
+        for i in range(1, alto-1):
+            for j in range(1, ancho-1):
+                if mapa[i][j] == 1:
+                    if not all(mapa[i+di][j+dj]==1 for di,dj in directions):
+                        intresting_walls.append([i,j])
+
+        tree = spatial.KDTree( intresting_walls )
 
         def get_dist(row, col):
             if mapa[row][col] == 1:
                 return 0
+            
+            dist, point_id = tree.query( [row,col] )
 
-            visited = np.zeros_like(mapa, dtype=bool)
-            queue = deque()
-            queue.append((row, col))
-
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-
-            while queue:
-                r, c = queue.popleft()
-
-                if not (0 <= r < alto and 0 <= c < ancho) or visited[r][c]:
-                    continue
-                visited[r][c] = True
-
-                if mapa[r][c] == 1:
-                    return np.linalg.norm([r-row, c-col]) * factor_de_distancia
-
-                for dr, dc in directions:
-                    queue.append((r + dr, c + dc))
-
-            return None  # In case no '1' is found in the entire mapa
+            return dist*factor_de_distancia
 
         def gaussian(mean, std):
-            func = lambda x : np.exp(-(x-mean)**2/(2*std**2))/(2*np.pi*std**2)**2
+            func = lambda x : np.exp(-(x-mean)**2/(2*std**2))/(np.sqrt(2*np.pi)*std)
             return func
+        
+        def remap(value, from_min, from_max, to_min, to_max):
+            return to_min + (value - from_min) * (to_max - to_min) / (from_max - from_min)
 
+        ti = time.time()
         p_func = gaussian(0, 0.1)
+        prob_max = p_func(0)
         probs = []
+        colors = []
         for i in range(alto):
             probs.append([])
+            colors.append([])
             print(i)
             for j in range(ancho): 
                 dist = get_dist(i,j)
                 prob = p_func(dist)
+                color = round(remap(prob,0,prob_max, 0,255))
                 probs[i].append(prob)
+                colors[i].append(color)
         
-        probs2 = np.array(probs)
-        print(probs2)
+        tf = time.time()
+        print(tf-ti)
 
-                  
-        
-
-
+        colors = np.array(colors).astype(np.uint8)
+        colors = np.flip(colors, axis=0)
+        cv2.imshow('Imagen', colors)
+        cv2.waitKey(0)  # Wait until a key is pressed
+        cv2.destroyAllWindows()
 
 def main():
     rclpy.init()
