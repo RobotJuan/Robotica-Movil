@@ -12,7 +12,10 @@ from particle import Particle
 from sensor import SensorModel
 import numpy as np
 from random import uniform
+from threading import Thread
 
+def rad_to_degree(angle):
+    return angle*np.pi/180
 
 class ParticlesManager(Node):
   
@@ -20,7 +23,7 @@ class ParticlesManager(Node):
     super().__init__('particles_manager')
     self.num_particles = num_particles
     self.sigma = 0.01
-    self.sensor_model = None
+    self.sensor_model = SensorModel()
     self.last_scan =  None
     self.particles = []
     self.dist_obj = 0.8
@@ -31,7 +34,7 @@ class ParticlesManager(Node):
     self.sub_odom = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
     self.sub_scan = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
     self.sub_map = self.create_subscription(OccupancyGrid, '/world_map', self.map_callback, 10)
-    self.create_timer(2.0, self.mover_robot)
+    # self.create_timer(2.0, self.mover_robot)
 
   def mover_robot( self ):
     if self.mover :
@@ -59,15 +62,7 @@ class ParticlesManager(Node):
     # pose_array_msg.header.frame_id = "world_map"
 
     for part in self.particles:
-      part_pose = part.to_pose_array()## Pose()
-      part_pose.position.x, part_pose.position.y = part.x, part.y
-      quat = quaternion_from_euler(0,0, part.ang)
-
-      part_pose.orientation.x = quat[0]
-      part_pose.orientation.y = quat[1]
-      part_pose.orientation.z = quat[2]
-      part_pose.orientation.w = quat[3]
-
+      part_pose = part.to_pose()
       pose_array_msg.poses.append(part_pose)
 
     self.pub_particles.publish(pose_array_msg)
@@ -77,17 +72,26 @@ class ParticlesManager(Node):
     pass
 
   def scan_callback(self, msg):
-    if self.sensor_model is None:
-        return  # Aún no tenemos el mapa procesado
-
-    self.last_scan = msg
+    scan_min = msg.angle_min
+    scan_max = msg.angle_max
+    scan_increment = msg.angle_increment
+    scaneos_utiles = []
+    n = 0
+    for angulo in np.arange(scan_min, scan_max, scan_increment):
+        if angulo > -0.5 and angulo < 0.5:
+            if msg.ranges[n] < 4:
+                scaneos_utiles.append([angulo, msg.ranges[n]])
+        n += 1
     
+    self.scans = scaneos_utiles
     self.evaluate_particles()
-    
 
   def map_callback(self, msg):
-    self.map_data = msg
-    self.sensor_model = SensorModel(msg)
+    map_thread = Thread(target = self.map_thread, args = (msg,))
+    map_thread.start()
+
+  def map_thread(self, msg):
+    self.sensor_model.iniciar(msg)
     self.get_logger().info("Mapa recibido")
 
   def evaluate_particles(self):
@@ -95,11 +99,24 @@ class ParticlesManager(Node):
     Evalúa qué tan coherente es cada partícula usando el modelo de sensor.
     Por ahora, solo calcula un peso simple basado en la distancia al muro más cercano.
     """
+    if not self.sensor_model.ready:
+        return
+
     total_weight = 0
     weights = []
 
     for part in self.particles:
-        prob = self.sensor_model.get_prob_at(part.x, part.y)
+        prob = 1
+        init_pos = part.pos()
+        for scan in self.scans:
+            dist = scan[1]
+            angle = scan[0] + init_pos[2]
+            x = init_pos[0] + dist*np.cos(angle)
+            y = init_pos[1] + dist*np.sin(angle)
+            vero = self.sensor_model.get_prob_at(x, y) / self.sensor_model.max_prob
+            prob = prob*vero
+
+        prob = prob ** (1/50)
         weights.append(prob)
         total_weight += prob
 
@@ -107,6 +124,7 @@ class ParticlesManager(Node):
         self.get_logger().warn("Todas las partículas tienen peso cero. Revisar inicialización.")
         return
 
+    print(max(weights))
     # Normalizamos pesos
     normalized_weights = [w / total_weight for w in weights]
 
@@ -121,33 +139,45 @@ class ParticlesManager(Node):
     self.resample_particles(normalized_weights)
     best_idx = np.argmax(normalized_weights)
     best_particle = self.particles[best_idx]
-    # self.publish_best_estimate.publish(best_particle.to_pose_array())
+    # self.publish_best_estimate.publish(best_particle.to_pose())
 
-    msg.poses.append(best_particle.to_pose_array())  # Un solo pose dentro del arreglo
+    msg.poses.append(best_particle.to_pose())  # Un solo pose dentro del arreglo
     self.publish_best_estimate.publish(msg)
     self.mover = True
 
   def resample_particles(self, normalized_weights):
     """
-    Resamplea las partículas basado en los pesos normalizados usando Ruleta.
+    Resamplea el 50% de las partículas basado en los pesos (ruleta),
+    y genera el otro 50% de forma aleatoria para diversificación.
     """
-    new_particles = []
     num_particles = len(self.particles)
+    num_resample = num_particles // 2
+    num_random = num_particles - num_resample
 
+    # --- 1) Resampling (Ruleta / Stochastic Universal Sampling) ---
     cumulative_sum = np.cumsum(normalized_weights)
-    cumulative_sum[-1] = 1.0  # Corregir por posibles errores numéricos
+    cumulative_sum[-1] = 1.0
 
-    step = 1.0 / num_particles
+    step = 1.0 / num_resample
     start = np.random.uniform(0, step)
-    positions = [start + i * step for i in range(num_particles)]
+    positions = [start + i * step for i in range(num_resample)]
 
+    new_particles = []
     idx = 0
     for pos in positions:
         while pos > cumulative_sum[idx]:
             idx += 1
-        selected_particle = self.particles[idx].copy()
-        new_particles.append(selected_particle)
+        new_particles.append(self.particles[idx].copy())
 
+    # --- 2) Generar partículas aleatorias ---
+    for _ in range(num_random):
+        x = uniform( 0, 2.7 )
+        y = uniform( 0, 2.7 )
+        ang = uniform( -np.pi, np.pi )
+        new_particle = Particle( x, y, ang, sigma = self.sigma )
+        new_particles.append(new_particle)
+
+    # --- 3) Actualizar partículas ---
     self.particles = new_particles
     self.publish_particles()
     
@@ -218,7 +248,7 @@ def main():
   map_width_m = map_width_pix * map_resolution
   map_height_m = map_height_pix * map_resolution
 
-  particle_manager = ParticlesManager( num_particles = 500 )
+  particle_manager = ParticlesManager( num_particles = 1000 )
   particle_manager.create_particles( [0, map_width_m], [0, map_height_m] )
 
   rclpy.spin(particle_manager)
