@@ -3,7 +3,10 @@ import numpy as np
 
 class SensorModel:
 
-    def _init_(self, occupancy_grid_msg):
+    def __init__(self):
+        self.ready = False
+    
+    def iniciar(self, occupancy_grid_msg):
         """
         occupancy_grid_msg : nav_msgs.msg.OccupancyGrid
         """
@@ -13,9 +16,8 @@ class SensorModel:
         self.resolution = occupancy_grid_msg.info.resolution
 
         self.mapa = self._process_map(occupancy_grid_msg)
-        self.kdtree = self._build_wall_kdtree(self.mapa)
-        self.gaussian_func = self._gaussian(mean=0, std=0.1)
         self.max_prob = self.gaussian_func(0)
+        self.ready = True
 
     def _process_map(self, data):
         """
@@ -47,8 +49,19 @@ class SensorModel:
                     mapa[i][j] = 0
                 else:
                     mapa[i][j] = -1
+    
+        self.kdtree = self._build_wall_kdtree(mapa)
+        self.gaussian_func = self._gaussian(mean=0, std=0.02)
 
-        return mapa
+        probs = []
+        for i in range(alto):
+            probs.append([])
+            for j in range(ancho): 
+                dist, _ = self.kdtree.query([i, j])
+                dist_metros = dist * self.resolution
+                prob = self.gaussian_func(dist_metros)
+                probs[i].append(prob)
+        return probs
 
     def _build_wall_kdtree(self, mapa):
         """
@@ -77,13 +90,13 @@ class SensorModel:
         map_x = int(world_x / self.resolution)
         map_y = int(world_y / self.resolution)
 
-        if not (0 <= map_x < self.width and 0 <= map_y < self.height):
-            return 0.0  # Fuera de los límites, probabilidad mínima
+        if map_x < 0:
+            map_x = 0 
+        if map_y < 0:
+            map_y = 0 
+        if map_x >= self.width:
+            map_x = self.width - 1
+        if map_y >= self.height:
+            map_y = self.height - 1
 
-        if self.mapa[map_y][map_x] == 1:
-            return self.max_prob  # Está sobre un muro
-
-        dist, _ = self.kdtree.query([map_y, map_x])
-        dist_metros = dist * self.resolution
-        prob = self.gaussian_func(dist_metros)
-        return prob
+        return self.mapa[map_y][map_x]
