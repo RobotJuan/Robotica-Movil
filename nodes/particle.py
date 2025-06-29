@@ -23,7 +23,7 @@ class Particle( object ):
   def copy(self):
         return Particle(self.x, self.y, self.ang)
 
-  def to_pose_array(self):
+  def to_pose(self):
       part_pose = Pose()
       part_pose.position.x, part_pose.position.y = self.x, self.y
       quat = quaternion_from_euler(0,0, self.ang)
