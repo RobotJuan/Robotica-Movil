@@ -14,7 +14,7 @@
 
     <!-- Environment Simulation -->
     <node pkg="very_simple_robot_simulator" exec="world_state_gui.py" name="world_state_gui" output="screen">
-        <param name="map_file" value="$(find-pkg-share robotica_movil)/otros/mapa.yaml" />
+        <param name="map_file" value="$(find-pkg-share ayudantia_rviz)/map/mapa.yaml" />
     </node>
 
     <!-- Transforms between reference frames -->
