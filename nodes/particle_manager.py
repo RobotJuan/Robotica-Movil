@@ -9,7 +9,7 @@ from tf_transformations import quaternion_from_euler
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Vector3
 from particle import Particle
-from sensor import SensorModel
+from sensor_model import SensorModel
 import numpy as np
 from random import uniform
 from threading import Thread
@@ -26,19 +26,22 @@ class ParticlesManager(Node):
     self.sensor_model = SensorModel()
     self.last_scan =  None
     self.particles = []
-    self.dist_obj = 0.8
+    self.vel_base = 1
+    self.dist_obj = 0.6
+    self.kp = 0.1
     self.mover = False
     self.pub_particles = self.create_publisher(PoseArray, 'particles', 10)
     self.central_pub = self.create_publisher(LaserScan, 'centrales', 10)
+    self.vel_publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
     self.publish_best_estimate = self.create_publisher(PoseArray, 'best_particles', 10)
     self.sub_odom = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
     self.sub_scan = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
     self.sub_map = self.create_subscription(OccupancyGrid, '/world_map', self.map_callback, 10)
-    # self.create_timer(2.0, self.mover_robot)
+    self.create_timer(0.05, self.movimiento)
 
-  def mover_robot( self ):
-    if self.mover :
-       self.movimiento()
+  # def mover_robot( self ):
+  #   if self.mover :
+  #      self.movimiento()
     # self.update_particles( 0, 0, (30*np.pi/180) )
 
   def create_particles( self, range_x, range_y ):
@@ -85,6 +88,7 @@ class ParticlesManager(Node):
     
     self.scans = scaneos_utiles
     self.evaluate_particles()
+    self.mover = True
 
   def map_callback(self, msg):
     map_thread = Thread(target = self.map_thread, args = (msg,))
@@ -143,7 +147,8 @@ class ParticlesManager(Node):
 
     msg.poses.append(best_particle.to_pose())  # Un solo pose dentro del arreglo
     self.publish_best_estimate.publish(msg)
-    self.mover = True
+    # self.mover = True
+
 
   def resample_particles(self, normalized_weights):
     """
@@ -180,62 +185,65 @@ class ParticlesManager(Node):
     # --- 3) Actualizar partículas ---
     self.particles = new_particles
     self.publish_particles()
+
     
 
   def movimiento(self):
-      # self.get_logger().info(f"Pesos normalizados: {self.last_scan} ...")
-    ranges = self.last_scan.ranges
+    print("hola")
+    if self.mover:
+      pared = False
+      actuacion = 0
+      right_rays = self.scans[:6] #central_ranges[:6]
+      left_rays = self.scans[-6:]# central_ranges[-6:]
+      middle_rays = self.scans[24:-24]
+      
+      suma_izquierda = self.suma_filtrada(left_rays)
+      suma_derecha = self.suma_filtrada(right_rays)
+      suma_central = self.suma_filtrada(middle_rays)
 
-# Ejemplo en el callback
-    angle_min_deg = math.degrees(self.last_scan.angle_min)
-    angle_max_deg = math.degrees(self.last_scan.angle_max)
-    increment_deg = math.degrees(self.last_scan.angle_increment)
-
-    self.get_logger().info(f"Ángulo Min: {angle_min_deg:.2f}°, Ángulo Max: {angle_max_deg:.2f}°, Incremento: {increment_deg:.2f}°")
-
-    # Índice correspondiente a -57° y +57°
-    index_inicio = int((-57.0 - angle_min_deg) / increment_deg)
-    index_final = int((57.0 - angle_min_deg) / increment_deg)
-
-    self.get_logger().info(f"Muestras Totales: {len(self.last_scan.ranges)}, Índice Inicio: {index_inicio}, Índice Final: {index_final}")
-
-    # Tomar solo los 114° centrales
-    central_ranges = self.last_scan.ranges[index_inicio : index_final + 1]
-
-    right_rays = central_ranges[:6]
-    left_rays = central_ranges[-6:]
-
-    self.get_logger().info(f"Izquierdos: {left_rays} ...")
-    self.get_logger().info(f"Derechos: {right_rays} ...")    
-
-    def suma_filtrada(rayos):
-      sum = 0
-      n = 0
-      for r in rayos:
-         if r>0 and r<4.0:
-            sum += r
-            n+=1
-      if (n!=0):return sum/n
-         
-            #math.isinf(r)])
-    
-    suma_izquierda = suma_filtrada(left_rays)
-    suma_derecha = suma_filtrada(right_rays)
-
-    
-    # num_readings = len(ranges)
-    if suma_izquierda == 0.0 and suma_derecha == 0.0:
-        self.get_logger().info("No se detectaron paredes cercanas")
-    elif suma_izquierda > 0.0 and (suma_derecha == 0.0 or suma_izquierda < suma_derecha):
-        self.get_logger().info("Pared más cercana a la IZQUIERDA")
-    elif suma_derecha > 0.0 and (suma_izquierda == 0.0 or suma_derecha < suma_izquierda):
-        self.get_logger().info(f"Pared más cercana a la DERECHA {suma_derecha}")
-    else:
-        self.get_logger().info("Ambos lados a distancias similares o sin datos válidos")
-
-    self.mover = False
+      if suma_central< 1:
+         pared = True
+      
+      self.get_logger().info(f"Centro {suma_central}")
+      
+      # num_readings = len(ranges)
+      if not pared:
+        if suma_izquierda == 0.0 and suma_derecha == 0.0:
+            self.get_logger().info("No se detectaron paredes cercanas")
+        elif suma_izquierda > 0.0 and (suma_derecha == 0.0 or suma_izquierda < suma_derecha):
+            self.get_logger().info("Pared más cercana a la IZQUIERDA")
+            error = self.dist_obj - suma_izquierda
+            actuacion = self.kp*error
+        elif suma_derecha > 0.0 and (suma_izquierda == 0.0 or suma_derecha < suma_izquierda):
+            self.get_logger().info(f"Pared más cercana a la DERECHA {suma_derecha}")
+            error = self.dist_obj - suma_derecha
+            actuacion = self.kp*error
+            self.get_logger().info(f"ACCTUACION {actuacion}")
+        
+        else:
+            self.get_logger().info("Ambos lados a distancias similares o sin datos válidos")
+        
+        twist = Twist()
+        twist.linear.x = float(0.5)
+        twist.angular.z = float(actuacion)
+        self.vel_publisher.publish(twist)
+        
+      
+      else:
+         self.get_logger().info("Pared Enfrente")
               
     pass
+  def suma_filtrada(self, rayos):
+          suma = 0
+          n = 0
+          for r in rayos:
+              distancia = r[1]  # índice 1 es la distancia
+              if distancia > 0 and distancia < 4.0:
+                  suma += distancia
+                  n += 1
+          if n != 0:
+              return suma / n
+          return 0
 
 
 def main():
@@ -258,6 +266,8 @@ def main():
 
 if __name__ == '__main__':
   main()
+
+
 
 
 
