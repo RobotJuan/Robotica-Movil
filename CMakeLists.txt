@@ -31,6 +31,8 @@ set(PYTHON_SCRIPTS
   nodes/pose_loader.py
   nodes/navegacion_final.py
   nodes/particle_manager.py
+  nodes/particle.py
+  nodes/sensor_model.py
 )
 
 # Mark them executable
