@@ -1,0 +1,46 @@
+<launch>
+    <!-- Robot Simulation -->
+    <node pkg="very_simple_robot_simulator" exec="kobuki_simulator.py" name="kobuki_simulator">
+        <param name="initial_x" value="0.5" />
+        <param name="initial_y" value="0.5" />
+        <param name="initial_yaw" value="0.0" />
+    </node>
+
+    <!-- Lidar Simulation -->
+    <node pkg="very_simple_robot_simulator" exec="lidar_simulator" name="lidar_simulator">
+        <param name="effective_hfov" value="181.0"/>
+        <param name="view_depth" value="20.0"/>
+    </node>
+
+    <!-- Environment Simulation -->
+    <node pkg="very_simple_robot_simulator" exec="world_state_gui.py" name="world_state_gui" output="screen">
+        <param name="map_file" value="$(find-pkg-share ayudantia_rviz)/map/mapa.yaml" />
+    </node>
+
+    <!-- Transforms between reference frames -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="world_map_to_odom" args="--x 0.5 --y 0.5 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id world_map --child-frame-id odom"/>
+    
+    <!-- Recieves input from keyboard -->
+    <!-- <node pkg="teleop_twist_keyboard" exec="teleop_twist_keyboard" name="teleop_twist_keyboard" output="screen"/>
+
+    <node pkg="teleop_twist_keyboard" exec="teleop_twist_keyboard" name="teleop_twist_keyboard" output="screen" /> -->
+
+
+    
+    <!-- Recieves input from joystick -->
+    <!-- <node pkg="joy" exec="joy_node" name="joy_node"/> -->
+
+    <!-- Converts joystick input to Twist messages -->
+    <!-- <node pkg="teleop_twist_joy" exec="teleop_node" name="teleop_node">
+        <param name="axis_linear.x" value="1"/>
+        <param name="axis_angular.yaw" value="2"/>
+    </node> -->
+
+    <!-- Rviz -->
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" args="-d /root/workspace/src/Robotica-Movil/otros/rviz_config.rviz"/> 
+    <!-- <args="-d /root/workspace/src/ayudantia_rviz/rviz/rviz.rviz"/--> 
+
+    <!-- Particles generator -->
+    <node pkg="ayudantia_rviz" exec="particles_manager.py" name="particles_manager" />
+
+</launch>
