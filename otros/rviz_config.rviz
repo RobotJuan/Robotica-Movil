@@ -7,9 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /Map1/Topic1
-        - /LaserScan1
-        - /Axes1
-        - /Axes2
       Splitter Ratio: 0.5
     Tree Height: 555
   - Class: rviz_common/Selection
@@ -120,6 +117,48 @@ Visualization Manager:
       Radius: 0.05000000074505806
       Reference Frame: base_link
       Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz_default_plugins/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /particles
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.5
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz_default_plugins/PoseArray
+      Color: 94; 255; 25
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /best_particles
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -202,5 +241,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: -4
-  Y: -4
+  X: 2002
+  Y: 12
