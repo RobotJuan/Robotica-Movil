@@ -26,18 +26,20 @@ class ParticlesManager(Node):
     self.sensor_model = SensorModel()
     self.last_scan =  None
     self.particles = []
-    self.vel_base = 1
-    self.dist_obj = 0.6
-    self.kp = 0.1
+    self.vel_base = 0.1
+    self.dist_obj = 0.5
+    self.kp = 2
     self.mover = False
+    self.map_ok = False
     self.pub_particles = self.create_publisher(PoseArray, 'particles', 10)
     self.central_pub = self.create_publisher(LaserScan, 'centrales', 10)
-    self.vel_publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
+    # self.vel_publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
+    self.vel_publisher = self.create_publisher(Twist, "/cmd_vel", 10)
     self.publish_best_estimate = self.create_publisher(PoseArray, 'best_particles', 10)
     self.sub_odom = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
     self.sub_scan = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
     self.sub_map = self.create_subscription(OccupancyGrid, '/world_map', self.map_callback, 10)
-    self.create_timer(0.05, self.movimiento)
+    self.create_timer(0.01, self.movimiento)
 
   # def mover_robot( self ):
   #   if self.mover :
@@ -61,8 +63,8 @@ class ParticlesManager(Node):
   def publish_particles(self):
     pose_array_msg = PoseArray()
     pose_array_msg.header = Header()
-    pose_array_msg.header.frame_id = "base_link"
-    # pose_array_msg.header.frame_id = "world_map"
+    # pose_array_msg.header.frame_id = "base_link"
+    pose_array_msg.header.frame_id = "world_map"
 
     for part in self.particles:
       part_pose = part.to_pose()
@@ -88,11 +90,13 @@ class ParticlesManager(Node):
     
     self.scans = scaneos_utiles
     self.evaluate_particles()
-    self.mover = True
+    if self.map_ok:
+      self.mover = True
 
   def map_callback(self, msg):
     map_thread = Thread(target = self.map_thread, args = (msg,))
     map_thread.start()
+    self.map_ok  = True
 
   def map_thread(self, msg):
     self.sensor_model.iniciar(msg)
@@ -131,7 +135,7 @@ class ParticlesManager(Node):
     print(max(weights))
     # Normalizamos pesos
     normalized_weights = [w / total_weight for w in weights]
-
+    sorted_indices = np.argsort(normalized_weights)[::-1]
     # Aquí puedes imprimir o usar los pesos
     # self.get_logger().info(f"Pesos normalizados: {normalized_weights[:5]} ...")
 
@@ -141,12 +145,18 @@ class ParticlesManager(Node):
     msg.header.stamp = self.get_clock().now().to_msg()
     
     self.resample_particles(normalized_weights)
-    best_idx = np.argmax(normalized_weights)
-    best_particle = self.particles[best_idx]
+    num_mejores = min(10, len(self.particles))  # Seguridad si tienes menos de 10
+    for i in range(num_mejores):
+        idx = sorted_indices[i]
+        msg.poses.append(self.particles[idx].to_pose())
+
+    self.publish_best_estimate.publish(msg)
+    # best_idx = np.argmax(normalized_weights)
+    # best_particle = self.particles[best_idx]
     # self.publish_best_estimate.publish(best_particle.to_pose())
 
-    msg.poses.append(best_particle.to_pose())  # Un solo pose dentro del arreglo
-    self.publish_best_estimate.publish(msg)
+    # msg.poses.append(best_particle.to_pose())  # Un solo pose dentro del arreglo
+    # self.publish_best_estimate.publish(msg)
     # self.mover = True
 
 
@@ -195,13 +205,13 @@ class ParticlesManager(Node):
       actuacion = 0
       right_rays = self.scans[:6] #central_ranges[:6]
       left_rays = self.scans[-6:]# central_ranges[-6:]
-      middle_rays = self.scans[24:-24]
+      middle_rays = self.scans[20:-20]
       
       suma_izquierda = self.suma_filtrada(left_rays)
       suma_derecha = self.suma_filtrada(right_rays)
       suma_central = self.suma_filtrada(middle_rays)
 
-      if suma_central< 1:
+      if suma_central< 0.4:
          pared = True
       
       self.get_logger().info(f"Centro {suma_central}")
@@ -210,27 +220,33 @@ class ParticlesManager(Node):
       if not pared:
         if suma_izquierda == 0.0 and suma_derecha == 0.0:
             self.get_logger().info("No se detectaron paredes cercanas")
+            actuacion = 0
         elif suma_izquierda > 0.0 and (suma_derecha == 0.0 or suma_izquierda < suma_derecha):
             self.get_logger().info("Pared más cercana a la IZQUIERDA")
-            error = self.dist_obj - suma_izquierda
+            error = (self.dist_obj - suma_izquierda)
             actuacion = self.kp*error
         elif suma_derecha > 0.0 and (suma_izquierda == 0.0 or suma_derecha < suma_izquierda):
             self.get_logger().info(f"Pared más cercana a la DERECHA {suma_derecha}")
-            error = self.dist_obj - suma_derecha
+            error = self.dist_obj - suma_derecha #si >0 estoy mas cerca de lo que deberia 
             actuacion = self.kp*error
-            self.get_logger().info(f"ACCTUACION {actuacion}")
+            
         
         else:
             self.get_logger().info("Ambos lados a distancias similares o sin datos válidos")
-        
+        self.get_logger().info(f"ACCTUACION {actuacion}")
         twist = Twist()
-        twist.linear.x = float(0.5)
+        twist.linear.x = float(self.vel_base)
         twist.angular.z = float(actuacion)
         self.vel_publisher.publish(twist)
         
       
       else:
-         self.get_logger().info("Pared Enfrente")
+        self.get_logger().info("Pared Enfrente")
+        twist = Twist()
+        twist.linear.x = float(0)
+        twist.angular.z = float(0.5)
+        self.vel_publisher.publish(twist)
+        
               
     pass
   def suma_filtrada(self, rayos):
@@ -266,8 +282,6 @@ def main():
 
 if __name__ == '__main__':
   main()
-
-
 
 
 
