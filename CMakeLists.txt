@@ -30,6 +30,7 @@ set(PYTHON_SCRIPTS
   nodes/obstacle_detector.py
   nodes/pose_loader.py
   nodes/navegacion_final.py
+  nodes/particle_manager.py
 )
 
 # Mark them executable
