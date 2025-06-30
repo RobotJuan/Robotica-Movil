@@ -6,7 +6,7 @@ from tf_transformations import quaternion_from_euler
 
 class Particle( object ):
 
-  def init( self, x, y, ang, sigma = 0.1 ):
+  def __init__( self, x, y, ang, sigma = 0.1 ):
     self.x, self.y, self.ang = x, y, ang
     self.last_x, self.last_y, self.last_ang = x, y, ang
     self.sigma = sigma
