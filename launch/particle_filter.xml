@@ -37,7 +37,7 @@
     </node> -->
 
     <!-- Rviz -->
-    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" args="-d /root/workspace/src/Robotica-Movil/otros/rviz_config.rviz"/> 
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" args="-d /home/workspace/src/Robotica-Movil/otros/rviz_config.rviz"/> 
     <!-- <args="-d /root/workspace/src/ayudantia_rviz/rviz/rviz.rviz"/--> 
 
     <!-- Particles generator -->
