@@ -41,6 +41,6 @@
     <!-- <args="-d /root/workspace/src/ayudantia_rviz/rviz/rviz.rviz"/--> 
 
     <!-- Particles generator -->
-    <node pkg="ayudantia_rviz" exec="particles_manager.py" name="particles_manager" />
+    <node pkg="robotica_movil" exec="particles_manager.py" name="particles_manager" />
 
 </launch>
