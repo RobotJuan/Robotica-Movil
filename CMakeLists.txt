@@ -33,6 +33,8 @@ set(PYTHON_SCRIPTS
   nodes/particle_manager.py
   nodes/particle.py
   nodes/sensor_model.py
+  nodes/modelo_sensor.py
+  
 )
 
 # Mark them executable
