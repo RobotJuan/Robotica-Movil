@@ -15,16 +15,16 @@ from random import uniform
 from threading import Thread
 
 def rad_to_degree(angle):
-    return angle*np.pi/180
+    return angle * np.pi / 180
 
 class ParticlesManager(Node):
   
-  def __init__( self, num_particles ):
+  def __init__(self, num_particles):
     super().__init__('particles_manager')
     self.num_particles = num_particles
     self.sigma = 0.01
     self.sensor_model = SensorModel()
-    self.last_scan =  None
+    self.last_scan = None
     self.particles = []
     self.vel_base = 0.1
     self.dist_obj = 0.5
@@ -33,37 +33,30 @@ class ParticlesManager(Node):
     self.map_ok = False
     self.pub_particles = self.create_publisher(PoseArray, 'particles', 10)
     self.central_pub = self.create_publisher(LaserScan, 'centrales', 10)
-    # self.vel_publisher = self.create_publisher(Twist, "/cmd_vel_mux/input/navigation", 10)
     self.vel_publisher = self.create_publisher(Twist, "/cmd_vel", 10)
     self.publish_best_estimate = self.create_publisher(PoseArray, 'best_particles', 10)
     self.sub_odom = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
     self.sub_scan = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
     self.sub_map = self.create_subscription(OccupancyGrid, '/world_map', self.map_callback, 10)
-    self.create_timer(0.01, self.movimiento)
+    self.create_timer(0.05, self.movimiento)  # Cambié el timer a 0.05 segundos
 
-  # def mover_robot( self ):
-  #   if self.mover :
-  #      self.movimiento()
-    # self.update_particles( 0, 0, (30*np.pi/180) )
-
-  def create_particles( self, range_x, range_y ):
-    for i in range( 0, self.num_particles ):
-      x = uniform( range_x[0], range_x[1] )
-      y = uniform( range_y[0], range_y[1] )
-      ang = uniform( -np.pi, np.pi )
-      new_particle = Particle( x, y, ang, sigma = self.sigma )
-      self.particles.append( new_particle )
+  def create_particles(self, range_x, range_y):
+    for i in range(0, self.num_particles):
+      x = uniform(range_x[0], range_x[1])
+      y = uniform(range_y[0], range_y[1])
+      ang = uniform(-np.pi, np.pi)
+      new_particle = Particle(x, y, ang, sigma=self.sigma)
+      self.particles.append(new_particle)
     self.publish_particles()
 
-  def update_particles( self, delta_x, delta_y, delta_ang ):
+  def update_particles(self, delta_x, delta_y, delta_ang):
     for particle in self.particles:
-      particle.move( delta_x, delta_y, delta_ang )
+      particle.move(delta_x, delta_y, delta_ang)
     self.publish_particles()
 
   def publish_particles(self):
     pose_array_msg = PoseArray()
     pose_array_msg.header = Header()
-    # pose_array_msg.header.frame_id = "base_link"
     pose_array_msg.header.frame_id = "world_map"
 
     for part in self.particles:
@@ -73,7 +66,6 @@ class ParticlesManager(Node):
     self.pub_particles.publish(pose_array_msg)
 
   def odom_callback(self, msg):
-    # Aquí actualizas las partículas según el movimiento detectado
     pass
 
   def scan_callback(self, msg):
@@ -94,19 +86,15 @@ class ParticlesManager(Node):
       self.mover = True
 
   def map_callback(self, msg):
-    map_thread = Thread(target = self.map_thread, args = (msg,))
+    map_thread = Thread(target=self.map_thread, args=(msg,))
     map_thread.start()
-    self.map_ok  = True
+    self.map_ok = True
 
   def map_thread(self, msg):
     self.sensor_model.iniciar(msg)
     self.get_logger().info("Mapa recibido")
 
   def evaluate_particles(self):
-    """
-    Evalúa qué tan coherente es cada partícula usando el modelo de sensor.
-    Por ahora, solo calcula un peso simple basado en la distancia al muro más cercano.
-    """
     if not self.sensor_model.ready:
         return
 
@@ -119,12 +107,12 @@ class ParticlesManager(Node):
         for scan in self.scans:
             dist = scan[1]
             angle = scan[0] + init_pos[2]
-            x = init_pos[0] + dist*np.cos(angle)
-            y = init_pos[1] + dist*np.sin(angle)
+            x = init_pos[0] + dist * np.cos(angle)
+            y = init_pos[1] + dist * np.sin(angle)
             vero = self.sensor_model.get_prob_at(x, y) / self.sensor_model.max_prob
-            prob = prob*vero
+            prob = prob * vero
 
-        prob = prob ** (1/50)
+        prob = prob ** (1 / 50)
         weights.append(prob)
         total_weight += prob
 
@@ -132,14 +120,10 @@ class ParticlesManager(Node):
         self.get_logger().warn("Todas las partículas tienen peso cero. Revisar inicialización.")
         return
 
-    print(max(weights))
     # Normalizamos pesos
     normalized_weights = [w / total_weight for w in weights]
     sorted_indices = np.argsort(normalized_weights)[::-1]
-    # Aquí puedes imprimir o usar los pesos
-    # self.get_logger().info(f"Pesos normalizados: {normalized_weights[:5]} ...")
 
-    # (Opcional) Elegir mejor partícula y publicarla
     msg = PoseArray()
     msg.header.frame_id = "world_map"
     msg.header.stamp = self.get_clock().now().to_msg()
@@ -151,25 +135,12 @@ class ParticlesManager(Node):
         msg.poses.append(self.particles[idx].to_pose())
 
     self.publish_best_estimate.publish(msg)
-    # best_idx = np.argmax(normalized_weights)
-    # best_particle = self.particles[best_idx]
-    # self.publish_best_estimate.publish(best_particle.to_pose())
-
-    # msg.poses.append(best_particle.to_pose())  # Un solo pose dentro del arreglo
-    # self.publish_best_estimate.publish(msg)
-    # self.mover = True
-
 
   def resample_particles(self, normalized_weights):
-    """
-    Resamplea el 50% de las partículas basado en los pesos (ruleta),
-    y genera el otro 50% de forma aleatoria para diversificación.
-    """
     num_particles = len(self.particles)
     num_resample = num_particles // 2
     num_random = num_particles - num_resample
 
-    # --- 1) Resampling (Ruleta / Stochastic Universal Sampling) ---
     cumulative_sum = np.cumsum(normalized_weights)
     cumulative_sum[-1] = 1.0
 
@@ -184,104 +155,86 @@ class ParticlesManager(Node):
             idx += 1
         new_particles.append(self.particles[idx].copy())
 
-    # --- 2) Generar partículas aleatorias ---
     for _ in range(num_random):
-        x = uniform( 0, 2.7 )
-        y = uniform( 0, 2.7 )
-        ang = uniform( -np.pi, np.pi )
-        new_particle = Particle( x, y, ang, sigma = self.sigma )
+        x = uniform(0, 2.7)
+        y = uniform(0, 2.7)
+        ang = uniform(-np.pi, np.pi)
+        new_particle = Particle(x, y, ang, sigma=self.sigma)
         new_particles.append(new_particle)
 
-    # --- 3) Actualizar partículas ---
     self.particles = new_particles
     self.publish_particles()
 
-    
-
   def movimiento(self):
-    print("hola")
     if self.mover:
       pared = False
       actuacion = 0
-      right_rays = self.scans[:6] #central_ranges[:6]
-      left_rays = self.scans[-6:]# central_ranges[-6:]
-      middle_rays = self.scans[20:-20]
-      
+      right_rays = self.scans[:10]  # Más rayos para la derecha
+      left_rays = self.scans[-10:]  # Más rayos para la izquierda
+      middle_rays = self.scans[20:-20]  # Rango central
+
       suma_izquierda = self.suma_filtrada(left_rays)
       suma_derecha = self.suma_filtrada(right_rays)
       suma_central = self.suma_filtrada(middle_rays)
 
-      if suma_central< 0.4:
+      # Detectar cuál pared está más cercana y mantener una distancia constante
+      margen_seguridad = 0.6  # Distancia de seguridad para que el robot se mantenga alejado de las paredes
+      distancia_deseada = 0.5  # La distancia deseada a la pared más cercana
+
+      # Decidir cuál pared está más cerca
+      pared_cercana = "izquierda" if suma_izquierda < suma_derecha else "derecha"
+      distancia_pared_cercana = suma_izquierda if pared_cercana == "izquierda" else suma_derecha
+
+      # Si está muy cerca o demasiado lejos de la pared más cercana, ajustamos el avance
+      error_distancia = distancia_pared_cercana - distancia_deseada
+      actuacion = self.kp * error_distancia
+
+      if suma_central < margen_seguridad:
          pared = True
-      
-      self.get_logger().info(f"Centro {suma_central}")
-      
-      # num_readings = len(ranges)
+
       if not pared:
-        if suma_izquierda == 0.0 and suma_derecha == 0.0:
-            self.get_logger().info("No se detectaron paredes cercanas")
-            actuacion = 0
-        elif suma_izquierda > 0.0 and (suma_derecha == 0.0 or suma_izquierda < suma_derecha):
-            self.get_logger().info("Pared más cercana a la IZQUIERDA")
-            error = (self.dist_obj - suma_izquierda)
-            actuacion = self.kp*error
-        elif suma_derecha > 0.0 and (suma_izquierda == 0.0 or suma_derecha < suma_izquierda):
-            self.get_logger().info(f"Pared más cercana a la DERECHA {suma_derecha}")
-            error = self.dist_obj - suma_derecha #si >0 estoy mas cerca de lo que deberia 
-            actuacion = self.kp*error
-            
-        
-        else:
-            self.get_logger().info("Ambos lados a distancias similares o sin datos válidos")
-        self.get_logger().info(f"ACCTUACION {actuacion}")
+        # Movimiento hacia la pared más cercana
         twist = Twist()
         twist.linear.x = float(self.vel_base)
-        twist.angular.z = float(actuacion)
+        twist.angular.z = float(max(-0.5, min(0.5, actuacion)))  # Limitar velocidad angular
         self.vel_publisher.publish(twist)
         
-      
       else:
-        self.get_logger().info("Pared Enfrente")
+        # Si hay una pared enfrente, girar 90 grados
+        self.get_logger().info("Pared Enfrente, Rotando 90 grados")
         twist = Twist()
         twist.linear.x = float(0)
-        twist.angular.z = float(0.5)
+        twist.angular.z = float(0.5)  # Giro continuo de 90 grados
         self.vel_publisher.publish(twist)
-        
-              
-    pass
-  def suma_filtrada(self, rayos):
-          suma = 0
-          n = 0
-          for r in rayos:
-              distancia = r[1]  # índice 1 es la distancia
-              if distancia > 0 and distancia < 4.0:
-                  suma += distancia
-                  n += 1
-          if n != 0:
-              return suma / n
-          return 0
 
+  def suma_filtrada(self, rayos):
+      suma = 0
+      n = 0
+      for r in rayos:
+          distancia = r[1]  # índice 1 es la distancia
+          if distancia > 0 and distancia < 4.0:
+              suma += distancia
+              n += 1
+      if n != 0:
+          return suma / n
+      return 0
 
 def main():
   rclpy.init()
 
-  map_width_pix = 270 # [pix]
-  map_height_pix = 270 # [pix]
-  map_resolution = 0.01 # [m/pix]
+  map_width_pix = 270  # [pix]
+  map_height_pix = 270  # [pix]
+  map_resolution = 0.01  # [m/pix]
 
   map_width_m = map_width_pix * map_resolution
   map_height_m = map_height_pix * map_resolution
 
-  particle_manager = ParticlesManager( num_particles = 1000 )
-  particle_manager.create_particles( [0, map_width_m], [0, map_height_m] )
+  particle_manager = ParticlesManager(num_particles=1000)
+  particle_manager.create_particles([0, map_width_m], [0, map_height_m])
 
   rclpy.spin(particle_manager)
   particle_manager.destroy_node()
   rclpy.shutdown()
 
-
 if __name__ == '__main__':
   main()
-
-
-
